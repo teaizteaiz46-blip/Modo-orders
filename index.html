@@ -171,6 +171,28 @@
       </div>
       <div class="error" id="login-error" role="alert"></div>
       <button class="btn btn-primary" id="login-btn" type="submit" style="width:100%">دخول</button>
+      <button class="btn btn-ghost btn-sm" id="forgot-btn" type="button" style="width:100%">نسيت كلمة المرور؟</button>
+    </form>
+  </div>
+</section>
+
+<!-- ================= كلمة مرور جديدة ================= -->
+<section id="recovery" class="hidden" aria-labelledby="recovery-title">
+  <div class="login-card">
+    <div class="wordmark">MODO</div>
+    <h1 id="recovery-title">تعيين كلمة مرور جديدة</h1>
+    <form id="recovery-form" novalidate>
+      <div>
+        <label class="lbl" for="new-password">كلمة المرور الجديدة</label>
+        <input class="field" id="new-password" type="password" autocomplete="new-password" minlength="10" required dir="ltr">
+      </div>
+      <div>
+        <label class="lbl" for="new-password2">أعد كتابتها</label>
+        <input class="field" id="new-password2" type="password" autocomplete="new-password" minlength="10" required dir="ltr">
+      </div>
+      <div class="muted" style="font-size:13px">10 خانات على الأقل، وبيها حروف وأرقام.</div>
+      <div class="error" id="recovery-error" role="alert"></div>
+      <button class="btn btn-primary" id="recovery-btn" type="submit" style="width:100%">حفظ كلمة المرور</button>
     </form>
   </div>
 </section>
@@ -262,6 +284,9 @@
     'طلب مثبت': { to: 'مجهز', label: 'تم التجهيز' },
     'مجهز': { to: 'مكتمل', label: 'تم التسليم' },
   };
+
+  // لازم نقرا هذا قبل إنشاء العميل، لأنه يمسح الرمز من الرابط
+  const OPENED_FROM_RECOVERY = /[#&?]type=recovery(&|$)/.test(location.hash + location.search);
 
   if (!window.supabase || !window.supabase.createClient) {
     document.body.textContent = 'تعذر تحميل مكتبة Supabase. تحقق من الإنترنت وحدّث الصفحة.';
@@ -859,9 +884,63 @@
     state.pollTimer = setInterval(() => { if (!document.hidden) pollNew(); }, POLL_MS);
   }
 
+  function clearAuthHash() {
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  function showRecovery() {
+    clearInterval(state.pollTimer);
+    clearAuthHash();
+    $('app').classList.add('hidden');
+    $('login').classList.add('hidden');
+    $('recovery').classList.remove('hidden');
+    $('new-password').focus();
+  }
+
+  $('recovery-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const p1 = $('new-password').value;
+    const p2 = $('new-password2').value;
+    const err = $('recovery-error');
+    if (p1.length < 10 || !/[A-Za-z]/.test(p1) || !/\d/.test(p1)) {
+      err.textContent = 'كلمة المرور لازم تكون 10 خانات على الأقل وبيها حروف وأرقام';
+      return;
+    }
+    if (p1 !== p2) { err.textContent = 'كلمتا المرور غير متطابقتين'; return; }
+    err.textContent = '';
+    $('recovery-btn').disabled = true;
+    const { error } = await db.auth.updateUser({ password: p1 });
+    $('recovery-btn').disabled = false;
+    if (error) {
+      err.textContent = /session|expired|JWT/i.test(error.message)
+        ? 'انتهت صلاحية الرابط، اطلب رابط استعادة جديد'
+        : friendlyError(error);
+      return;
+    }
+    $('new-password').value = '';
+    $('new-password2').value = '';
+    $('recovery').classList.add('hidden');
+    toast('انحفظت كلمة المرور الجديدة');
+    await showApp();
+  });
+
+  $('forgot-btn').addEventListener('click', async () => {
+    const email = $('email').value.trim();
+    if (!email) { $('login-error').textContent = 'اكتب بريدك الإلكتروني أولاً، وبعدها اضغط نسيت كلمة المرور'; return; }
+    $('forgot-btn').disabled = true;
+    const { error } = await db.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + location.pathname,
+    });
+    $('forgot-btn').disabled = false;
+    if (error) { $('login-error').textContent = friendlyError(error); return; }
+    $('login-error').textContent = '';
+    toast('إذا البريد مسجّل، راح توصلك رسالة فيها رابط تغيير كلمة المرور');
+  });
+
   function showLogin(message = '') {
     clearInterval(state.pollTimer);
     $('app').classList.add('hidden');
+    $('recovery').classList.add('hidden');
     $('login').classList.remove('hidden');
     $('login-error').textContent = message;
     $('login-btn').disabled = false;
@@ -921,10 +1000,16 @@
 
   db.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') showLogin();
+    if (event === 'PASSWORD_RECOVERY') setTimeout(showRecovery, 0);
   });
 
   (async () => {
-    const { data } = await db.auth.getSession();
+    const { data, error } = await db.auth.getSession();
+    if (OPENED_FROM_RECOVERY) {
+      if (data.session) showRecovery();
+      else { clearAuthHash(); showLogin(error ? friendlyError(error) : 'الرابط منتهي أو مستخدم، اطلب رابط جديد من "نسيت كلمة المرور؟"'); }
+      return;
+    }
     if (data.session) await showApp();
     else showLogin();
   })();
