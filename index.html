@@ -170,6 +170,11 @@
   .badge.orange { background: var(--brand-soft); color: var(--brand-dark); }
   .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .form-grid .full { grid-column: 1 / -1; }
+  .tiers { display: grid; gap: 10px; justify-items: start; }
+  .tier-row { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+  .tier-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .tier-fields .field { flex: 1 1 110px; width: auto; min-width: 0; }
+  .tier-fields .check { min-height: 0; }
   .help { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .check { display: flex; align-items: center; gap: 8px; font-weight: 600; min-height: 44px; }
   .check input { width: 20px; height: 20px; accent-color: var(--brand); }
@@ -1102,7 +1107,7 @@
   // ================= المنتجات والمقاطع =================
   const BUCKET = 'hijabat';
   const MAX_VIDEO_MB = 50;
-  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at';
+  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at, bulk_tiers';
   const adm = {
     section: 'orders',
     categories: [],
@@ -1181,6 +1186,7 @@
             stock > 0 ? el('span', { class: 'badge green', text: `المخزون ${stock}` }) : el('span', { class: 'badge red', text: 'مخفي / نفد' }),
             p.is_offer ? el('span', { class: 'badge orange', text: 'عرض' }) : null,
             (p.colors || []).length ? el('span', { class: 'badge', text: `${p.colors.length} ألوان` }) : null,
+            (p.bulk_tiers || []).length ? el('span', { class: 'badge orange', text: 'عرض كمية' }) : null,
           ),
         ),
         el('div', { style: 'text-align:end' },
@@ -1234,7 +1240,7 @@
   function openProductEditor(product) {
     const dlg = $('product-dialog');
     const isNew = !product;
-    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [] };
+    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [], bulk_tiers: [] };
     // كل صورة: { url } موجودة أو { file, preview } جديدة
     let images = (p.image_url || []).map((url) => ({ url }));
 
@@ -1287,6 +1293,66 @@
     });
     renderThumbs();
 
+    // ---- عروض الكمية (bulk_tiers): باقات، مثلاً 3 قطع بسعر كلي. الحساب النهائي بالسيرفر (private.bulk_price).
+    let tiers = (Array.isArray(p.bulk_tiers) ? p.bulk_tiers : []).map((t) => ({
+      qty: t.qty ?? '', price: t.price ?? '', free: t.free_delivery === true,
+    }));
+    const tiersBox = el('div', { class: 'tiers' });
+    const renderTiers = () => {
+      const unit = Number(f.price.value) || 0;
+      tiersBox.replaceChildren(
+        ...tiers.map((t, i) => {
+          const qty = el('input', { class: 'field', type: 'number', min: 2, step: 1, inputmode: 'numeric', dir: 'ltr', placeholder: 'عدد القطع' });
+          const price = el('input', { class: 'field', type: 'number', min: 0, step: 250, inputmode: 'numeric', dir: 'ltr', placeholder: 'السعر الكلي' });
+          const free = el('input', { type: 'checkbox' });
+          qty.value = t.qty; price.value = t.price; free.checked = t.free;
+          const note = el('div', { class: 'help' });
+          const updateNote = () => {
+            const q = Number(t.qty), pr = Number(t.price), u = Number(f.price.value) || 0;
+            if (!(q >= 2) || !(pr > 0)) { note.textContent = ''; return; }
+            const regular = q * u;
+            note.textContent = `القطعة بـ ${money(pr / q)} د.ع` +
+              (regular > pr ? ` · الزبون يوفّر ${money(regular - pr)} د.ع` : '') +
+              (regular && regular <= pr && !t.free ? ' · ⚠️ السعر مو أرخص من السعر العادي' : '');
+          };
+          qty.addEventListener('input', () => { t.qty = qty.value; updateNote(); });
+          price.addEventListener('input', () => { t.price = price.value; updateNote(); });
+          free.addEventListener('change', () => { t.free = free.checked; updateNote(); });
+          updateNote();
+          return el('div', { class: 'tier-row' },
+            el('div', { class: 'tier-fields' },
+              qty,
+              el('span', { class: 'muted', text: 'قطع بـ' }),
+              price,
+              el('label', { class: 'check' }, free, 'توصيل مجاني'),
+              el('button', { class: 'btn btn-ghost btn-sm', type: 'button', title: 'حذف العرض', onclick: () => { tiers.splice(i, 1); renderTiers(); } }, '✕'),
+            ),
+            note,
+          );
+        }),
+        el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { tiers.push({ qty: '', price: '', free: false }); renderTiers(); } }, '+ إضافة عرض كمية'),
+        ...(unit ? [] : [el('div', { class: 'help', text: 'اكتب سعر المنتج أول حتى يبين التوفير.' })]),
+      );
+    };
+    f.price.addEventListener('change', renderTiers);
+    renderTiers();
+
+    // يرجع مصفوفة jsonb أو رسالة خطأ
+    function readTiers(unitPrice) {
+      const out = [];
+      for (const t of tiers) {
+        if (t.qty === '' && t.price === '') continue;
+        const qty = Number(t.qty), price = Number(t.price);
+        if (!Number.isInteger(qty) || qty < 2) return 'عدد القطع بعرض الكمية لازم يكون 2 أو أكثر';
+        if (!(price > 0)) return 'اكتب سعر صحيح لعرض الكمية';
+        const pcs = qty === 2 ? 'قطعتين' : `${qty} قطع`;
+        if (out.some((x) => x.qty === qty)) return `اكو عرضين لنفس العدد (${pcs})`;
+        if (price >= qty * unitPrice && !t.free) return `عرض ${pcs} مو أرخص من السعر العادي (${money(qty * unitPrice)} د.ع)`;
+        out.push(t.free ? { qty, price, free_delivery: true } : { qty, price });
+      }
+      return out.sort((a, b) => a.qty - b.qty);
+    }
+
     const err = el('div', { class: 'error', role: 'alert' });
     const saveBtn = el('button', { class: 'btn btn-primary', type: 'button' }, isNew ? 'إضافة المنتج' : 'حفظ التعديلات');
 
@@ -1307,6 +1373,8 @@
       if (!(stock >= 0) || !Number.isInteger(stock)) { err.textContent = 'اكتب كمية صحيحة'; return; }
       if (oldPrice !== null && oldPrice <= price) { err.textContent = 'السعر قبل الخصم لازم يكون أكبر من السعر الحالي، أو اتركه فارغ'; return; }
       if (!images.length) { err.textContent = 'أضف صورة وحدة على الأقل'; return; }
+      const bulkTiers = readTiers(price);
+      if (typeof bulkTiers === 'string') { err.textContent = bulkTiers; return; }
 
       dlg.querySelectorAll('button, input, select, textarea').forEach((x) => { x.disabled = true; });
       try {
@@ -1333,6 +1401,7 @@
           is_offer: f.offer.checked,
           offer_ends_at: f.offer.checked && f.ends.value ? new Date(f.ends.value).toISOString() : null,
           image_url: urls,
+          bulk_tiers: bulkTiers,
           ...extra,
         };
         const q = isNew
@@ -1367,6 +1436,7 @@
           field('السعر (د.ع) *', f.price),
           field('السعر قبل الخصم', f.oldPrice, { help: 'اتركه فارغ إذا ماكو خصم.' }),
           field('الألوان', f.colors, { full: true, help: 'افصل بينها بفاصلة. إذا كتبت ألوان، الزبون لازم يختار واحد قبل الإضافة للسلة.' }),
+          field('عروض الكمية', tiersBox, { full: true, help: 'مثال: 3 قطع بـ 15,000. تنحسب باقات: 7 قطع مع عرض 3 = باقتين + قطعة بالسعر العادي. الكمية تنجمع عبر كل الألوان، وإذا وصل عرض بيه توصيل مجاني يصير التوصيل مجاني على الطلب كله.' }),
           field('الوصف', f.desc, { full: true }),
           el('div', null, el('label', { class: 'check' }, f.offer, 'يظهر بقسم العروض')),
           field('ينتهي العرض (اختياري)', f.ends, { help: 'إذا حددته، يظهر عدّاد تنازلي بعروض الفلاش.' }),
