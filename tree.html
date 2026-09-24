@@ -122,7 +122,7 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--panel)}
   </header>
 
   <div class="funnel" id="funnel"></div>
-  <p class="note">الزيارات والضغطات من صفحة المنتج. الطلبات من التطبيق وتنحسب من كل المصادر.</p>
+  <p class="note">فتح الصفحة والضغطات من صفحة المنتج بالموقع. فتح بالتطبيق من التطبيق نفسه (نسخة 1.7.3 وأحدث). الطلبات من التطبيق وتنحسب من كل المصادر.</p>
 
   <main>
     <div id="treeWrap">
@@ -144,6 +144,7 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--panel)}
         <thead><tr>
           <th data-k="name">المنتج</th>
           <th class="num" data-k="views">فتح الصفحة</th>
+          <th class="num" data-k="appViews">فتح بالتطبيق</th>
           <th class="num" data-k="visitors">زوار</th>
           <th class="num" data-k="clicks">ضغط تحميل</th>
           <th class="num" data-k="orders">طلبات</th>
@@ -233,13 +234,14 @@ function compute() {
   const m = new Map(state.products.map(p => [p.id, {
     id: p.id, name: p.name || ('منتج ' + p.id), price: p.price, cat: p.category_id,
     img: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url,
-    views: 0, visitors: new Set(), clicks: 0, orderSet: new Set(), qty: 0, revenue: 0
+    views: 0, appViews: 0, visitors: new Set(), clicks: 0, orderSet: new Set(), qty: 0, revenue: 0
   }]));
   const srcOk = v => state.src === 'all' || (state.src === 'meta' ? v.utm_source === 'meta' : v.utm_source !== 'meta');
   for (const v of state.visits) {
     const r = m.get(v.product_id); if (!r || !srcOk(v)) continue;
     if (v.event === 'view') { r.views++; if (v.visitor_id) r.visitors.add(v.visitor_id); }
-    else r.clicks++;
+    else if (v.event === 'app_view') { r.appViews++; if (v.visitor_id) r.visitors.add(v.visitor_id); }
+    else if (v.event.startsWith('click_')) r.clicks++;
   }
   for (const it of state.items) {
     const r = m.get(it.product_id); if (!r) continue;
@@ -247,16 +249,18 @@ function compute() {
   }
   state.rows = [...m.values()].map(r => {
     const orders = r.orderSet.size, visitors = r.visitors.size;
-    const status = orders > 0 ? 'selling' : r.views >= 5 ? 'stuck' : r.views > 0 ? 'warm' : 'idle';
-    return { ...r, orders, visitors, status, score: r.views + orders * 5 };
+    const opens = r.views + r.appViews;
+    const status = orders > 0 ? 'selling' : opens >= 5 ? 'stuck' : opens > 0 ? 'warm' : 'idle';
+    return { ...r, orders, visitors, status, score: opens + orders * 5 };
   });
 }
 
 function render() {
-  const t = state.rows.reduce((a, r) => (a.views += r.views, a.visitors += r.visitors, a.clicks += r.clicks, a.orders += r.orders, a.revenue += r.revenue, a), { views: 0, visitors: 0, clicks: 0, orders: 0, revenue: 0 });
+  const t = state.rows.reduce((a, r) => (a.views += r.views, a.appViews += r.appViews, a.visitors += r.visitors, a.clicks += r.clicks, a.orders += r.orders, a.revenue += r.revenue, a), { views: 0, appViews: 0, visitors: 0, clicks: 0, orders: 0, revenue: 0 });
   const orderIds = new Set(state.items.map(i => i.order_id));
   $('funnel').innerHTML = [
     [fmt(t.views), 'فتح صفحة منتج'],
+    [fmt(t.appViews), 'فتح بالتطبيق'],
     [fmt(t.visitors), 'زائر'],
     [fmt(t.clicks), 'ضغط على تحميل'],
     [fmt(orderIds.size), 'طلب'],
@@ -270,7 +274,7 @@ function catName(id) { return (state.cats.find(c => c.id === id) || {}).name || 
 
 function drawTree() {
   const svg = d3.select('#tree'); svg.selectAll('*').remove();
-  const active = state.rows.filter(r => state.showAll || r.views || r.orders || r.clicks);
+  const active = state.rows.filter(r => state.showAll || r.views || r.appViews || r.orders || r.clicks);
   show('empty', active.length === 0);
   $('empty').textContent = 'ماكو زيارات ولا طلبات بهالفترة بعد. أول ما يفتح أحد صفحة منتج من الإعلان، يطلع هنا.';
   if (!active.length) return;
@@ -301,7 +305,7 @@ function drawTree() {
     .attr('fill', d => !d.depth ? 'var(--orange)' : d.data.cat ? 'var(--panel)' : COLORS[d.data.row.status])
     .attr('stroke', d => d.data.cat ? 'var(--orange)' : 'none').attr('stroke-width', 2)
     .on('click', (e, d) => d.data.row && select(d.data.row.id, true))
-    .append('title').text(d => d.data.row ? `${d.data.row.name}\nفتح: ${d.data.row.views} · طلبات: ${d.data.row.orders}` : d.data.name);
+    .append('title').text(d => d.data.row ? `${d.data.row.name}\nفتح: ${d.data.row.views} · بالتطبيق: ${d.data.row.appViews} · طلبات: ${d.data.row.orders}` : d.data.name);
 
   node.filter(d => !d.depth).append('text').attr('text-anchor', 'middle').attr('dy', '0.35em')
     .style('font-weight', 700).style('stroke', 'none').style('fill', '#fff').text('MODO');
@@ -317,13 +321,13 @@ function drawTree() {
 
 function drawTable() {
   const k = state.sortKey;
-  const list = state.rows.filter(r => state.showAll || r.views || r.orders || r.clicks)
+  const list = state.rows.filter(r => state.showAll || r.views || r.appViews || r.orders || r.clicks)
     .sort((a, b) => k === 'name' ? a.name.localeCompare(b.name, 'ar') : (b[k] - a[k]) || (b.score - a.score));
   $('rows').innerHTML = list.length ? list.map(r => `<tr data-id="${r.id}">
       <td><span class="dot" style="background:${COLORS[r.status]}"></span>${esc(r.name)}</td>
-      <td class="num">${fmt(r.views)}</td><td class="num">${fmt(r.visitors)}</td><td class="num">${fmt(r.clicks)}</td>
+      <td class="num">${fmt(r.views)}</td><td class="num">${fmt(r.appViews)}</td><td class="num">${fmt(r.visitors)}</td><td class="num">${fmt(r.clicks)}</td>
       <td class="num">${fmt(r.orders)}</td><td class="num">${fmt(r.qty)}</td><td class="num">${fmt(r.revenue)}</td></tr>`).join('')
-    : '<tr><td colspan="7" style="color:var(--muted)">ماكو نشاط بهالفترة.</td></tr>';
+    : '<tr><td colspan="8" style="color:var(--muted)">ماكو نشاط بهالفترة.</td></tr>';
 }
 
 function select(id, redraw) {
@@ -338,6 +342,7 @@ function select(id, redraw) {
       <dt>القسم</dt><dd>${esc(catName(r.cat))}</dd>
       <dt>السعر</dt><dd>${fmt(r.price)} د.ع</dd>
       <dt>فتح الصفحة</dt><dd>${fmt(r.views)}</dd>
+      <dt>فتح بالتطبيق</dt><dd>${fmt(r.appViews)}</dd>
       <dt>زوار</dt><dd>${fmt(r.visitors)}</dd>
       <dt>ضغط على تحميل</dt><dd>${fmt(r.clicks)}</dd>
       <dt>طلبات</dt><dd>${fmt(r.orders)}</dd>
