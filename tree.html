@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>MODO — شجرة الإعلانات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+:root{
+  --bg:#1a1714; --panel:#221e1a; --line:#3a332d; --text:#f3ece4; --muted:#9a8f85;
+  --orange:#ff7a3d; --green:#46c486; --amber:#f2b441; --idle:#5c544d;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;font-size:15px;line-height:1.6}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.hidden{display:none!important}
+
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:24px}
+#login form{width:100%;max-width:340px;display:grid;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.5px}
+.brand b{background:var(--orange);color:#fff;border-radius:8px;width:30px;height:30px;display:grid;place-items:center}
+#login h1{font-size:22px;margin:18px 0 4px}
+#login p{margin:0 0 8px;color:var(--muted)}
+input{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;width:100%}
+.btn{background:var(--orange);border:0;border-radius:10px;padding:12px 16px;font-weight:700;color:#fff}
+.err{color:#ff8a8a;min-height:1.6em;margin:0}
+
+/* app */
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{background:none;border:0;padding:6px 12px;border-radius:7px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--orange);color:#fff}
+.ghost{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 12px;color:var(--muted)}
+
+.funnel{display:flex;flex-wrap:wrap;gap:0;padding:18px 20px 6px}
+.step{padding:0 18px;border-inline-start:1px solid var(--line)}
+.step:first-child{padding-inline-start:0;border:0}
+.step strong{display:block;font-size:28px;line-height:1.2}
+.step span{color:var(--muted);font-size:13px}
+.note{color:var(--muted);font-size:13px;padding:0 20px 8px;margin:0}
+
+main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:0}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+#treeWrap{position:relative;min-height:420px}
+#tree{width:100%;height:auto;display:block;max-height:78vh;touch-action:none}
+.link{fill:none;stroke:var(--line);stroke-width:1.2}
+.link.selling{stroke:var(--green);stroke-opacity:.7}
+.link.stuck{stroke:var(--amber);stroke-opacity:.7}
+.link.warm{stroke:var(--orange);stroke-opacity:.45}
+.node text{fill:var(--text);font-size:12px;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+.node.cat text{font-weight:700;font-size:13px}
+.node circle{cursor:pointer}
+.node.sel circle{stroke:#fff;stroke-width:2.5}
+.legend{position:absolute;bottom:10px;inset-inline-start:20px;display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:6px;vertical-align:middle}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:30px}
+
+aside{border-inline-start:1px solid var(--line);padding:20px}
+@media (max-width:900px){aside{border:0;border-top:1px solid var(--line)}}
+aside img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:var(--panel)}
+aside h2{font-size:17px;margin:12px 0 4px}
+.verdict{display:inline-block;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:500;margin:4px 0 12px}
+.v-selling{background:#1d3a2b;color:var(--green)} .v-stuck{background:#3d3118;color:var(--amber)}
+.v-warm{background:#3b2518;color:var(--orange)} .v-idle{background:#2a2622;color:var(--muted)}
+dl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:0}
+dt{color:var(--muted)} dd{margin:0;font-weight:500;text-align:end}
+
+section.list{padding:8px 20px 40px}
+.tableWrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:620px}
+th,td{padding:10px 8px;text-align:start;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:500;font-size:13px;cursor:pointer}
+td.num,th.num{text-align:end}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--panel)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:8px}
+#loading{position:fixed;inset:auto 0 0 0;padding:10px;text-align:center;background:var(--orange);color:#fff;font-weight:500}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<section id="login" class="hidden">
+  <form id="loginForm">
+    <div class="brand"><b>M</b>MODO</div>
+    <h1>شجرة الإعلانات</h1>
+    <p>ادخل بحساب مشرف المتجر.</p>
+    <input id="email" type="email" placeholder="الإيميل" autocomplete="email" required dir="ltr">
+    <input id="pass" type="password" placeholder="كلمة السر" autocomplete="current-password" required dir="ltr">
+    <button class="btn" type="submit">دخول</button>
+    <p class="err" id="loginErr"></p>
+  </form>
+</section>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="brand"><b>M</b>شجرة الإعلانات</div>
+    <div class="controls">
+      <div class="seg" id="range" role="group" aria-label="الفترة">
+        <button data-d="1">اليوم</button>
+        <button data-d="7" aria-pressed="true">٧ أيام</button>
+        <button data-d="30">٣٠ يوم</button>
+      </div>
+      <div class="seg" id="src" role="group" aria-label="مصدر الزيارات">
+        <button data-s="all" aria-pressed="true">كل الزيارات</button>
+        <button data-s="meta">ميتا</button>
+        <button data-s="other">غيرها</button>
+      </div>
+      <button class="ghost" id="allBtn" aria-pressed="false">كل المنتجات</button>
+      <button class="ghost" id="refresh">تحديث</button>
+      <button class="ghost" id="logout">خروج</button>
+    </div>
+  </header>
+
+  <div class="funnel" id="funnel"></div>
+  <p class="note">الزيارات والضغطات من صفحة المنتج. الطلبات من التطبيق وتنحسب من كل المصادر.</p>
+
+  <main>
+    <div id="treeWrap">
+      <svg id="tree" role="img" aria-label="شجرة المنتجات والزيارات والطلبات"></svg>
+      <div class="empty hidden" id="empty"></div>
+      <div class="legend">
+        <span><i style="background:var(--green)"></i>ديبيع</span>
+        <span><i style="background:var(--amber)"></i>ينفتح وما ينطلب</span>
+        <span><i style="background:var(--orange)"></i>بيه زيارات</span>
+        <span><i style="background:var(--idle)"></i>هادي</span>
+      </div>
+    </div>
+    <aside id="detail"><p style="color:var(--muted);margin:0">اضغط على أي منتج بالشجرة أو بالجدول حتى تشوف تفاصيله.</p></aside>
+  </main>
+
+  <section class="list">
+    <div class="tableWrap">
+      <table>
+        <thead><tr>
+          <th data-k="name">المنتج</th>
+          <th class="num" data-k="views">فتح الصفحة</th>
+          <th class="num" data-k="visitors">زوار</th>
+          <th class="num" data-k="clicks">ضغط تحميل</th>
+          <th class="num" data-k="orders">طلبات</th>
+          <th class="num" data-k="qty">قطع</th>
+          <th class="num" data-k="revenue">المبيعات</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+<div id="loading" class="hidden">ديحمّل...</div>
+
+<script>
+const SB_URL = 'https://pajxormplmloivyankji.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhanhvcm1wbG1sb2l2eWFua2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0ODQ3OTksImV4cCI6MjA3NjA2MDc5OX0.eEPB_Gt5HywU9oGNXLpSNc4IA7CTTL7CX-EMKDE3yec';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+const state = { days: 7, src: 'all', showAll: false, sortKey: 'orders', selected: null, cats: [], products: [], visits: [], items: [], rows: [] };
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n || 0).toLocaleString('en-US');
+const COLORS = { selling: 'var(--green)', stuck: 'var(--amber)', warm: 'var(--orange)', idle: 'var(--idle)' };
+const VERDICT = {
+  selling: 'ديبيع — زيد عليه إعلان',
+  stuck: 'ينفتح وما ينطلب — راجع السعر أو الصور',
+  warm: 'بيه زيارات، بعده ما انطلب',
+  idle: 'هادي بهالفترة'
+};
+
+function show(id, on) { $(id).classList.toggle('hidden', !on); }
+
+async function fetchAll(make) {
+  let out = [], from = 0; const step = 1000;
+  for (;;) {
+    const { data, error } = await make().range(from, from + step - 1);
+    if (error) throw error;
+    out = out.concat(data);
+    if (data.length < step) return out;
+    from += step;
+  }
+}
+
+async function boot() {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) { show('login', true); show('app', false); return; }
+  show('login', false); show('app', true);
+  await loadStatic();
+  await loadRange();
+}
+
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('loginErr').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pass').value });
+  if (error) { $('loginErr').textContent = 'الإيميل أو كلمة السر غلط.'; return; }
+  const { data: isAdmin } = await sb.rpc('is_modo_admin');
+  if (isAdmin === false) { await sb.auth.signOut(); $('loginErr').textContent = 'هذا الحساب مو مشرف بالمتجر.'; return; }
+  boot();
+});
+
+$('logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+async function loadStatic() {
+  const c = await sb.from('categories').select('id,name');
+  if (c.error) throw c.error;
+  state.cats = c.data;
+  state.products = await fetchAll(() => sb.from('products').select('id,name,price,category_id,image_url').order('id'));
+}
+
+async function loadRange() {
+  show('loading', true);
+  try {
+    const since = new Date();
+    if (state.days === 1) since.setHours(0, 0, 0, 0); else since.setDate(since.getDate() - state.days);
+    const iso = since.toISOString();
+    [state.visits, state.items] = await Promise.all([
+      fetchAll(() => sb.from('page_visits').select('product_id,event,utm_source,visitor_id').gte('created_at', iso).order('id')),
+      fetchAll(() => sb.from('order_items').select('product_id,order_id,quantity,line_total').gte('created_at', iso).order('id'))
+    ]);
+    compute(); render();
+  } catch (err) {
+    $('funnel').innerHTML = '<p class="err">ما گدرت أجيب البيانات: ' + (err.message || err) + '</p>';
+  } finally { show('loading', false); }
+}
+
+function compute() {
+  const m = new Map(state.products.map(p => [p.id, {
+    id: p.id, name: p.name || ('منتج ' + p.id), price: p.price, cat: p.category_id,
+    img: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url,
+    views: 0, visitors: new Set(), clicks: 0, orderSet: new Set(), qty: 0, revenue: 0
+  }]));
+  const srcOk = v => state.src === 'all' || (state.src === 'meta' ? v.utm_source === 'meta' : v.utm_source !== 'meta');
+  for (const v of state.visits) {
+    const r = m.get(v.product_id); if (!r || !srcOk(v)) continue;
+    if (v.event === 'view') { r.views++; if (v.visitor_id) r.visitors.add(v.visitor_id); }
+    else r.clicks++;
+  }
+  for (const it of state.items) {
+    const r = m.get(it.product_id); if (!r) continue;
+    r.orderSet.add(it.order_id); r.qty += it.quantity || 0; r.revenue += Number(it.line_total || 0);
+  }
+  state.rows = [...m.values()].map(r => {
+    const orders = r.orderSet.size, visitors = r.visitors.size;
+    const status = orders > 0 ? 'selling' : r.views >= 5 ? 'stuck' : r.views > 0 ? 'warm' : 'idle';
+    return { ...r, orders, visitors, status, score: r.views + orders * 5 };
+  });
+}
+
+function render() {
+  const t = state.rows.reduce((a, r) => (a.views += r.views, a.visitors += r.visitors, a.clicks += r.clicks, a.orders += r.orders, a.revenue += r.revenue, a), { views: 0, visitors: 0, clicks: 0, orders: 0, revenue: 0 });
+  const orderIds = new Set(state.items.map(i => i.order_id));
+  $('funnel').innerHTML = [
+    [fmt(t.views), 'فتح صفحة منتج'],
+    [fmt(t.visitors), 'زائر'],
+    [fmt(t.clicks), 'ضغط على تحميل'],
+    [fmt(orderIds.size), 'طلب'],
+    [fmt(t.revenue) + ' د.ع', 'مبيعات']
+  ].map(([n, l]) => `<div class="step"><strong>${n}</strong><span>${l}</span></div>`).join('');
+  drawTree(); drawTable();
+  if (state.selected) select(state.selected, false);
+}
+
+function catName(id) { return (state.cats.find(c => c.id === id) || {}).name || 'بدون قسم'; }
+
+function drawTree() {
+  const svg = d3.select('#tree'); svg.selectAll('*').remove();
+  const active = state.rows.filter(r => state.showAll || r.views || r.orders || r.clicks);
+  show('empty', active.length === 0);
+  $('empty').textContent = 'ماكو زيارات ولا طلبات بهالفترة بعد. أول ما يفتح أحد صفحة منتج من الإعلان، يطلع هنا.';
+  if (!active.length) return;
+
+  const R = Math.max(260, Math.min(520, 160 + active.length * 4));
+  const S = R * 2 + 260;
+  svg.attr('viewBox', [-S / 2, -S / 2, S, S]);
+  const g = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.5, 5]).on('zoom', e => g.attr('transform', e.transform)));
+
+  const grouped = d3.group(active, r => r.cat);
+  const root = d3.hierarchy({ name: 'MODO', children: [...grouped].map(([cid, list]) => ({ name: catName(cid), cat: true, children: list.map(r => ({ name: r.name, row: r })) })) });
+  d3.tree().size([2 * Math.PI, R]).separation((a, b) => (a.parent === b.parent ? 1 : 2) / a.depth)(root);
+
+  const top = new Set(active.filter(r => r.score > 0).sort((a, b) => b.score - a.score).slice(0, 14).map(r => r.id));
+  const size = d3.scaleSqrt().domain([0, d3.max(active, r => r.score) || 1]).range([4, 16]);
+
+  g.append('g').selectAll('path').data(root.links()).join('path')
+    .attr('class', d => 'link ' + (d.target.data.row ? d.target.data.row.status : ''))
+    .attr('d', d3.linkRadial().angle(d => d.x).radius(d => d.y));
+
+  const node = g.append('g').selectAll('g').data(root.descendants()).join('g')
+    .attr('class', d => 'node' + (d.data.cat ? ' cat' : '') + (d.data.row && d.data.row.id === state.selected ? ' sel' : ''))
+    .attr('transform', d => d.depth ? `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)` : null);
+
+  node.append('circle')
+    .attr('r', d => !d.depth ? 30 : d.data.cat ? 9 : size(d.data.row.score))
+    .attr('fill', d => !d.depth ? 'var(--orange)' : d.data.cat ? 'var(--panel)' : COLORS[d.data.row.status])
+    .attr('stroke', d => d.data.cat ? 'var(--orange)' : 'none').attr('stroke-width', 2)
+    .on('click', (e, d) => d.data.row && select(d.data.row.id, true))
+    .append('title').text(d => d.data.row ? `${d.data.row.name}\nفتح: ${d.data.row.views} · طلبات: ${d.data.row.orders}` : d.data.name);
+
+  node.filter(d => !d.depth).append('text').attr('text-anchor', 'middle').attr('dy', '0.35em')
+    .style('font-weight', 700).style('stroke', 'none').style('fill', '#fff').text('MODO');
+
+  node.filter(d => d.depth && (d.data.cat || top.has(d.data.row.id) || d.data.row.id === state.selected))
+    .append('text')
+    .attr('dy', '0.32em')
+    .attr('x', d => (d.x < Math.PI) === !d.children ? 14 : -14)
+    .attr('text-anchor', d => (d.x < Math.PI) === !d.children ? 'start' : 'end')
+    .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
+    .text(d => { const n = d.data.name; return n.length > 26 ? n.slice(0, 25) + '…' : n; });
+}
+
+function drawTable() {
+  const k = state.sortKey;
+  const list = state.rows.filter(r => state.showAll || r.views || r.orders || r.clicks)
+    .sort((a, b) => k === 'name' ? a.name.localeCompare(b.name, 'ar') : (b[k] - a[k]) || (b.score - a.score));
+  $('rows').innerHTML = list.length ? list.map(r => `<tr data-id="${r.id}">
+      <td><span class="dot" style="background:${COLORS[r.status]}"></span>${esc(r.name)}</td>
+      <td class="num">${fmt(r.views)}</td><td class="num">${fmt(r.visitors)}</td><td class="num">${fmt(r.clicks)}</td>
+      <td class="num">${fmt(r.orders)}</td><td class="num">${fmt(r.qty)}</td><td class="num">${fmt(r.revenue)}</td></tr>`).join('')
+    : '<tr><td colspan="7" style="color:var(--muted)">ماكو نشاط بهالفترة.</td></tr>';
+}
+
+function select(id, redraw) {
+  state.selected = id;
+  const r = state.rows.find(x => x.id === id); if (!r) return;
+  const conv = r.visitors ? Math.round(r.orders / r.visitors * 100) + '%' : '—';
+  $('detail').innerHTML = `
+    ${r.img ? `<img src="${esc(r.img)}" alt="">` : ''}
+    <h2>${esc(r.name)}</h2>
+    <span class="verdict v-${r.status}">${VERDICT[r.status]}</span>
+    <dl>
+      <dt>القسم</dt><dd>${esc(catName(r.cat))}</dd>
+      <dt>السعر</dt><dd>${fmt(r.price)} د.ع</dd>
+      <dt>فتح الصفحة</dt><dd>${fmt(r.views)}</dd>
+      <dt>زوار</dt><dd>${fmt(r.visitors)}</dd>
+      <dt>ضغط على تحميل</dt><dd>${fmt(r.clicks)}</dd>
+      <dt>طلبات</dt><dd>${fmt(r.orders)}</dd>
+      <dt>قطع مبيوعة</dt><dd>${fmt(r.qty)}</dd>
+      <dt>المبيعات</dt><dd>${fmt(r.revenue)} د.ع</dd>
+      <dt>من الزوار طلبوا</dt><dd>${conv}</dd>
+    </dl>`;
+  if (redraw) drawTree();
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function segment(id, attr, onPick) {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    onPick(b.dataset[attr]);
+  });
+}
+segment('range', 'd', v => { state.days = +v; loadRange(); });
+segment('src', 's', v => { state.src = v; compute(); render(); });
+$('allBtn').onclick = () => { state.showAll = !state.showAll; $('allBtn').setAttribute('aria-pressed', state.showAll); $('allBtn').style.color = state.showAll ? 'var(--orange)' : ''; render(); };
+$('refresh').onclick = loadRange;
+$('rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) select(+tr.dataset.id, true); });
+document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => { state.sortKey = th.dataset.k; drawTable(); });
+
+boot().catch(err => { show('app', true); $('funnel').innerHTML = '<p class="err">صار خطأ: ' + (err.message || err) + '</p>'; });
+</script>
+</body>
+</html>
