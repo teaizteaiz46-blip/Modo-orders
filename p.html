@@ -77,6 +77,50 @@
   const money = (v) => Math.round(Number(v) || 0).toLocaleString('en-US');
   const pieces = (n) => n === 2 ? 'قطعتين' : `${n} قطع`;
 
+  // ---- تسجيل الزيارات بجدول page_visits (insert فقط) ----
+  // ما يأخر فتح الصفحة ولا الانتقال، وأي خطأ يفشل بصمت.
+  const params = new URLSearchParams(location.search);
+  const clip = (v, max) => (v ? String(v).slice(0, max) : null);
+  // المصدر: utm_source إذا موجود، وإلا meta إذا الزيارة من إعلان فيسبوك/انستغرام (fbclid)، وإلا direct
+  const utmSource = params.get('utm_source') || (params.get('fbclid') ? 'meta' : 'direct');
+
+  function visitorId() {
+    const KEY = 'modo_visitor_id';
+    try {
+      let v = localStorage.getItem(KEY);
+      if (!v) {
+        v = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+        localStorage.setItem(KEY, v);
+      }
+      return v;
+    } catch {
+      return null;
+    }
+  }
+
+  function track(event) {
+    try {
+      fetch(`${SUPABASE_URL}/rest/v1/page_visits`, {
+        method: 'POST',
+        keepalive: true, // يكمّل حتى لو الصفحة انتقلت للمتجر أو التطبيق
+        headers: {
+          apikey: ANON_KEY,
+          Authorization: `Bearer ${ANON_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal', // الجدول ما يسمح بالقراءة
+        },
+        body: JSON.stringify({
+          event,
+          product_id: Number.isInteger(id) && id > 0 ? id : null,
+          utm_source: clip(utmSource, 100),
+          utm_campaign: clip(params.get('utm_campaign'), 200),
+          referrer: clip(document.referrer, 300),
+          visitor_id: clip(visitorId(), 64),
+        }),
+      }).catch(() => {});
+    } catch {}
+  }
+
   function el(tag, attrs, ...children) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs || {})) {
@@ -116,8 +160,8 @@
 
   function storeButtons() {
     return el('div', { class: 'stores' },
-      el('a', { class: 'btn', href: PLAY_URL, rel: 'noopener' }, 'Google Play'),
-      el('a', { class: 'btn', href: APP_STORE_URL, rel: 'noopener' }, 'App Store'),
+      el('a', { class: 'btn', href: PLAY_URL, rel: 'noopener', onclick: () => track('click_play') }, 'Google Play'),
+      el('a', { class: 'btn', href: APP_STORE_URL, rel: 'noopener', onclick: () => track('click_appstore') }, 'App Store'),
     );
   }
 
@@ -149,7 +193,7 @@
         el('div', { class: 'stock ' + (inStock ? 'in' : 'out'), text: inStock ? 'متوفر' : 'نفد حالياً' }),
         p.description ? el('div', { class: 'desc', text: p.description }) : null,
         el('div', { class: 'actions' },
-          el('button', { class: 'btn primary', type: 'button', onclick: () => openApp(p.id) }, 'اطلبه من تطبيق MODO'),
+          el('button', { class: 'btn primary', type: 'button', onclick: () => { track('click_app'); openApp(p.id); } }, 'اطلبه من تطبيق MODO'),
           storeButtons(),
         ),
         el('div', { class: 'note', text: 'الدفع نقداً عند الاستلام · توصيل لكل المحافظات' }),
@@ -179,6 +223,7 @@
     }
   }
 
+  track('view');
   load();
 })();
 </script>
