@@ -1107,7 +1107,7 @@
   // ================= المنتجات والمقاطع =================
   const BUCKET = 'hijabat';
   const MAX_VIDEO_MB = 50;
-  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at, bulk_tiers';
+  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at, bulk_tiers, offer_group';
   const adm = {
     section: 'orders',
     categories: [],
@@ -1187,6 +1187,7 @@
             p.is_offer ? el('span', { class: 'badge orange', text: 'عرض' }) : null,
             (p.colors || []).length ? el('span', { class: 'badge', text: `${p.colors.length} ألوان` }) : null,
             (p.bulk_tiers || []).length ? el('span', { class: 'badge orange', text: 'عرض كمية' }) : null,
+            p.offer_group ? el('span', { class: 'badge', text: `مجموعة: ${p.offer_group}` }) : null,
           ),
         ),
         el('div', { style: 'text-align:end' },
@@ -1240,7 +1241,7 @@
   function openProductEditor(product) {
     const dlg = $('product-dialog');
     const isNew = !product;
-    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [], bulk_tiers: [] };
+    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [], bulk_tiers: [], offer_group: null };
     // كل صورة: { url } موجودة أو { file, preview } جديدة
     let images = (p.image_url || []).map((url) => ({ url }));
 
@@ -1255,6 +1256,7 @@
       desc: el('textarea', { class: 'field', rows: 4 }),
       offer: el('input', { type: 'checkbox' }),
       ends: el('input', { class: 'field', type: 'datetime-local', dir: 'ltr' }),
+      group: el('input', { class: 'field', maxlength: 60, list: 'offer-groups', placeholder: 'مثال: برا 8 آلاف' }),
       files: el('input', { type: 'file', accept: 'image/*', multiple: true, class: 'hidden' }),
     };
     f.name.value = p.name || '';
@@ -1266,6 +1268,7 @@
     f.colors.value = (p.colors || []).join('، ');
     f.desc.value = p.description || '';
     f.offer.checked = !!p.is_offer;
+    f.group.value = p.offer_group || '';
     if (p.offer_ends_at) {
       const d = new Date(p.offer_ends_at);
       f.ends.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -1375,6 +1378,18 @@
       if (!images.length) { err.textContent = 'أضف صورة وحدة على الأقل'; return; }
       const bulkTiers = readTiers(price);
       if (typeof bulkTiers === 'string') { err.textContent = bulkTiers; return; }
+      const offerGroup = f.group.value.trim() || null;
+      if (offerGroup) {
+        if (!bulkTiers.length) { err.textContent = 'مجموعة العرض تحتاج عرض كمية على المنتج'; return; }
+        // كل منتجات المجموعة لازم نفس السعر ونفس عروض الكمية، حتى ما تختلط عروض مختلفة
+        const sig = (tiers) => JSON.stringify((tiers || []).map((t) => [Number(t.qty), Number(t.price), t.free_delivery === true]).sort((a, b) => a[0] - b[0]));
+        const other = adm.products.find((x) => x.id !== p.id && (x.offer_group || '').trim() === offerGroup
+          && (Number(x.price) !== price || sig(x.bulk_tiers) !== sig(bulkTiers)));
+        if (other) {
+          err.textContent = `المجموعة "${offerGroup}" بيها "${other.name}" (#${other.id}) بسعر أو عرض مختلف. خلي السعر والعرض نفسه، أو غيّر اسم المجموعة.`;
+          return;
+        }
+      }
 
       dlg.querySelectorAll('button, input, select, textarea').forEach((x) => { x.disabled = true; });
       try {
@@ -1402,6 +1417,7 @@
           offer_ends_at: f.offer.checked && f.ends.value ? new Date(f.ends.value).toISOString() : null,
           image_url: urls,
           bulk_tiers: bulkTiers,
+          offer_group: offerGroup,
           ...extra,
         };
         const q = isNew
@@ -1437,6 +1453,9 @@
           field('السعر قبل الخصم', f.oldPrice, { help: 'اتركه فارغ إذا ماكو خصم.' }),
           field('الألوان', f.colors, { full: true, help: 'افصل بينها بفاصلة. إذا كتبت ألوان، الزبون لازم يختار واحد قبل الإضافة للسلة.' }),
           field('عروض الكمية', tiersBox, { full: true, help: 'مثال: 3 قطع بـ 15,000. تنحسب باقات: 7 قطع مع عرض 3 = باقتين + قطعة بالسعر العادي. الكمية تنجمع عبر كل الألوان، وإذا وصل عرض بيه توصيل مجاني يصير التوصيل مجاني على الطلب كله.' }),
+          field('مجموعة العرض (اختياري)', el('div', null, f.group,
+            el('datalist', { id: 'offer-groups' }, ...[...new Set(adm.products.map((x) => (x.offer_group || '').trim()).filter(Boolean))].map((g) => el('option', { value: g })))),
+            { full: true, help: 'المنتجات بنفس المجموعة تتجمع قطعها للعرض، مثلاً قطعة من موديل وقطعة من موديل ثاني = قطعتين. لازم كلها نفس السعر ونفس عرض الكمية. اتركه فارغ إذا المنتج لحاله.' }),
           field('الوصف', f.desc, { full: true }),
           el('div', null, el('label', { class: 'check' }, f.offer, 'يظهر بقسم العروض')),
           field('ينتهي العرض (اختياري)', f.ends, { help: 'إذا حددته، يظهر عدّاد تنازلي بعروض الفلاش.' }),
