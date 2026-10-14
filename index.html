@@ -332,6 +332,7 @@
       <button type="button" data-section="orders" aria-pressed="true">الطلبات</button>
       <button type="button" data-section="products" aria-pressed="false">المنتجات</button>
       <button type="button" data-section="clips" aria-pressed="false">المقاطع</button>
+      <button type="button" data-section="push" aria-pressed="false">الإشعارات</button>
     </nav>
   </header>
 
@@ -386,6 +387,11 @@
   <main class="wrap hidden" id="sec-clips">
     <div class="new-clip" id="new-clip"></div>
     <div class="clip-grid" id="clip-list"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-push">
+    <div class="new-clip" id="push-form"></div>
+    <div id="push-log"></div>
   </main>
 </div>
 
@@ -1125,11 +1131,12 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
     if (name === 'clips' && !adm.clipsLoaded) loadClips();
+    if (name === 'push') openPush();
     window.scrollTo(0, 0);
   }
 
@@ -1508,8 +1515,108 @@
     renderClips();
   }
 
-  function productPicker(selectedId) {
-    const search = el('input', { class: 'field', type: 'search', placeholder: 'ابحث عن المنتج المرتبط بالمقطع' });
+  // ---------- الإشعارات (Firebase) ----------
+  let pushFormReady = false;
+  async function openPush() {
+    if (!adm.productsLoaded) await loadProducts();
+    if (!pushFormReady) renderPushForm();
+    loadPushLog();
+  }
+
+  function renderPushForm() {
+    pushFormReady = true;
+    const title = el('input', { class: 'field', maxlength: 80, placeholder: 'مثال: وصل موديل جديد 🤍' });
+    const body = el('textarea', { class: 'field', rows: 3, maxlength: 300, placeholder: 'مثال: برا ليزري ناعم، أي قطعتين بـ 16 ألف والتوصيل مجاني' });
+    const picker = productPicker(null, 'ابحث عن منتج يفتحه الإشعار (اختياري)');
+    const err = el('div', { class: 'error', role: 'alert' });
+    const preview = el('div', { class: 'help' });
+    const updatePreview = () => {
+      const p = adm.products.find((x) => String(x.id) === picker.select.value);
+      preview.textContent = p
+        ? 'لمن الزبون يضغط الإشعار ينفتح: ' + p.name + ' (#' + p.id + ')' + (p.stock > 0 ? '' : ' ⚠️ المنتج مخفي')
+        : 'لمن الزبون يضغط الإشعار تنفتح الرئيسية.';
+    };
+    picker.select.addEventListener('change', updatePreview);
+    updatePreview();
+
+    const buttons = [];
+    async function send(target) {
+      err.textContent = '';
+      const t = title.value.trim();
+      const b = body.value.trim();
+      if (!t || !b) { err.textContent = 'اكتب العنوان والنص'; return; }
+      const p = adm.products.find((x) => String(x.id) === picker.select.value);
+      if (target === 'all') {
+        const ok = await confirmDialog('إرسال لكل الزبائن؟', 'راح يوصل الإشعار "' + t + '" لكل الي منزلين التطبيق، وما ينگدر يتراجع بعد الإرسال.', 'إرسال للكل');
+        if (!ok) return;
+      }
+      buttons.forEach((x) => { x.disabled = true; });
+      try {
+        const { error } = await db.functions.invoke('send-push', {
+          body: {
+            target, title: t, body: b,
+            product_id: p ? p.id : null,
+            image: p && Array.isArray(p.image_url) ? (p.image_url[0] || null) : null,
+          },
+        });
+        if (error) {
+          let msg = error.message;
+          try { const j = await error.context.json(); msg = j.error || msg; } catch (_) {}
+          throw new Error(msg);
+        }
+        toast(target === 'all' ? 'انرسل الإشعار لكل الزبائن ✅' : 'انرسلت التجربة لأجهزة المشرفين ✅');
+        loadPushLog();
+      } catch (e) {
+        err.textContent = 'ما انرسل: ' + (e.message || e);
+      } finally {
+        buttons.forEach((x) => { x.disabled = false; });
+      }
+    }
+    buttons.push(
+      el('button', { class: 'btn', type: 'button', onclick: () => send('test') }, '🧪 إرسال تجربة (أجهزة المشرفين)'),
+      el('button', { class: 'btn btn-primary', type: 'button', onclick: () => send('all') }, '📣 إرسال لكل الزبائن'),
+    );
+
+    $('push-form').replaceChildren(
+      el('h3', { text: 'إشعار جديد', style: 'margin:0 0 10px' }),
+      el('div', { class: 'form-grid' },
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'العنوان *' }), title),
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'النص *' }), body),
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'منتج (اختياري)' }), picker.search, picker.select, preview),
+      ),
+      el('div', { class: 'help', text: 'التجربة توصل بس لأجهزة المشرفين المسجلين دخول بنسخة التطبيق 1.7.5 أو أحدث. صورة المنتج تطلع بإشعار الأندرويد.' }),
+      err,
+      el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px' }, ...buttons),
+    );
+  }
+
+  async function loadPushLog() {
+    $('push-log').replaceChildren(el('div', { class: 'empty', text: 'جاري التحميل...' }));
+    const { data, error } = await db.from('push_log')
+      .select('id, created_at, target, title, body, product_id, ok, error')
+      .order('id', { ascending: false }).limit(30);
+    if (error) { $('push-log').replaceChildren(el('div', { class: 'empty', text: friendlyError(error) })); return; }
+    if (!data.length) { $('push-log').replaceChildren(el('div', { class: 'empty', text: 'ماكو إشعارات مرسلة لحد هسه' })); return; }
+    $('push-log').replaceChildren(
+      el('h3', { text: 'آخر الإشعارات', style: 'margin:18px 0 10px' }),
+      ...data.map((r) => el('div', { class: 'prod-row', style: 'cursor:default' },
+        el('div', null,
+          el('div', { class: 'prod-name', text: r.title }),
+          el('div', { class: 'muted', style: 'font-size:13px', text: r.body }),
+          el('div', { class: 'prod-meta', style: 'margin-top:4px' },
+            el('span', { class: 'badge ' + (r.target === 'all' ? 'orange' : ''), text: r.target === 'all' ? 'لكل الزبائن' : 'تجربة' }),
+            el('span', { class: 'badge ' + (r.ok ? 'green' : 'red'), text: r.ok ? 'انرسل' : 'فشل' }),
+            r.product_id ? el('span', { text: 'منتج #' + r.product_id }) : null,
+            el('span', { text: new Date(r.created_at).toLocaleString('ar-IQ-u-nu-latn', { timeZone: 'Asia/Baghdad', dateStyle: 'short', timeStyle: 'short' }) }),
+          ),
+          r.error ? el('div', { class: 'error', style: 'margin-top:4px', text: r.error }) : null,
+        ),
+      )),
+    );
+  }
+
+  function productPicker(selectedId, placeholder = 'ابحث عن المنتج المرتبط بالمقطع') {
+    const search = el('input', { class: 'field', type: 'search', placeholder });
     const select = el('select', { class: 'field' });
     const fill = () => {
       const q = search.value.trim();
@@ -1665,6 +1772,7 @@
     unlockAudio();
     if (adm.section === 'products') { loadProducts(); return; }
     if (adm.section === 'clips') { loadClips(); return; }
+    if (adm.section === 'push') { loadPushLog(); return; }
     state.itemsCache.clear();
     loadOrders();
   });
