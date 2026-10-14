@@ -415,7 +415,7 @@
   const PAGE_LIMIT = 500;
   const TZ = 'Asia/Baghdad';
 
-  const ORDER_COLUMNS = 'id, created_at, customer_name, customer_phone, customer_address, cart_items, status, price, discount_amount, total_amount, delivery_cost, governorate, address_details, source, coupon_id, user_id, admin_note, status_updated_at, stock_restored';
+  const ORDER_COLUMNS = 'id, created_at, customer_name, customer_phone, customer_address, cart_items, status, price, discount_amount, total_amount, delivery_cost, governorate, address_details, source, coupon_id, user_id, admin_note, status_updated_at, stock_restored, options';
 
   const STATUSES = [
     { key: 'قيد المراجعة', cls: 'st-review' },
@@ -848,6 +848,7 @@
     ];
     if (!items.some((i) => i.color) && addr.colors) lines.push(`الألوان: ${addr.colors}`);
     lines.push(`المبلغ المطلوب: ${money(order.total_amount)} د.ع`);
+    (order.options || []).forEach((o) => lines.push(`📌 ${o}`));
     if (order.admin_note) lines.push(`ملاحظة: ${order.admin_note}`);
     return lines.join('\n');
   }
@@ -932,6 +933,8 @@
           el('h3', { text: `المنتجات (${itemsCount(order)} قطعة)` }),
           itemsBox,
           addr.colors ? el('div', { class: 'item-sub', style: 'margin-top:8px' }, 'تفاصيل الألوان: ', addr.colors) : null,
+          (order.options || []).length ? el('div', { style: 'margin-top:10px;display:flex;flex-wrap:wrap;gap:6px' },
+            ...order.options.map((o) => el('span', { class: 'badge orange', text: '📌 ' + o }))) : null,
           el('div', { class: 'totals', style: 'margin-top:12px' },
             el('div', { class: 'row' }, el('span', { class: 'muted', text: 'المنتجات' }), el('span', null, numEl(order.price), ' د.ع')),
             el('div', { class: 'row' }, el('span', { class: 'muted', text: 'التوصيل' }),
@@ -1107,7 +1110,7 @@
   // ================= المنتجات والمقاطع =================
   const BUCKET = 'hijabat';
   const MAX_VIDEO_MB = 50;
-  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at, bulk_tiers, offer_group';
+  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at, bulk_tiers, offer_group, is_wholesale, min_qty';
   const adm = {
     section: 'orders',
     categories: [],
@@ -1187,6 +1190,7 @@
             p.is_offer ? el('span', { class: 'badge orange', text: 'عرض' }) : null,
             (p.colors || []).length ? el('span', { class: 'badge', text: `${p.colors.length} ألوان` }) : null,
             (p.bulk_tiers || []).length ? el('span', { class: 'badge orange', text: 'عرض كمية' }) : null,
+            p.is_wholesale ? el('span', { class: 'badge', text: p.min_qty ? `جملة · أقل ${p.min_qty}` : 'جملة' }) : null,
             p.offer_group ? el('span', { class: 'badge', text: `مجموعة: ${p.offer_group}` }) : null,
           ),
         ),
@@ -1241,7 +1245,7 @@
   function openProductEditor(product) {
     const dlg = $('product-dialog');
     const isNew = !product;
-    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [], bulk_tiers: [], offer_group: null };
+    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [], bulk_tiers: [], offer_group: null, is_wholesale: false, min_qty: null };
     // كل صورة: { url } موجودة أو { file, preview } جديدة
     let images = (p.image_url || []).map((url) => ({ url }));
 
@@ -1257,6 +1261,8 @@
       offer: el('input', { type: 'checkbox' }),
       ends: el('input', { class: 'field', type: 'datetime-local', dir: 'ltr' }),
       group: el('input', { class: 'field', maxlength: 60, list: 'offer-groups', placeholder: 'مثال: برا 8 آلاف' }),
+      wholesale: el('input', { type: 'checkbox' }),
+      minQty: el('input', { class: 'field', type: 'number', min: 2, step: 1, inputmode: 'numeric', dir: 'ltr', placeholder: 'مثال: 12' }),
       files: el('input', { type: 'file', accept: 'image/*', multiple: true, class: 'hidden' }),
     };
     f.name.value = p.name || '';
@@ -1269,6 +1275,8 @@
     f.desc.value = p.description || '';
     f.offer.checked = !!p.is_offer;
     f.group.value = p.offer_group || '';
+    f.wholesale.checked = !!p.is_wholesale;
+    f.minQty.value = p.min_qty ?? '';
     if (p.offer_ends_at) {
       const d = new Date(p.offer_ends_at);
       f.ends.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -1379,6 +1387,8 @@
       const bulkTiers = readTiers(price);
       if (typeof bulkTiers === 'string') { err.textContent = bulkTiers; return; }
       const offerGroup = f.group.value.trim() || null;
+      const minQty = f.minQty.value === '' ? null : Number(f.minQty.value);
+      if (minQty !== null && (!Number.isInteger(minQty) || minQty < 2 || minQty > 1000)) { err.textContent = 'أقل كمية لازم رقم صحيح من 2 إلى 1000، أو اتركها فارغة'; return; }
       if (offerGroup) {
         if (!bulkTiers.length) { err.textContent = 'مجموعة العرض تحتاج عرض كمية على المنتج'; return; }
         // كل منتجات المجموعة لازم نفس السعر ونفس عروض الكمية، حتى ما تختلط عروض مختلفة
@@ -1418,6 +1428,8 @@
           image_url: urls,
           bulk_tiers: bulkTiers,
           offer_group: offerGroup,
+          is_wholesale: f.wholesale.checked,
+          min_qty: minQty,
           ...extra,
         };
         const q = isNew
@@ -1453,6 +1465,9 @@
           field('السعر قبل الخصم', f.oldPrice, { help: 'اتركه فارغ إذا ماكو خصم.' }),
           field('الألوان', f.colors, { full: true, help: 'افصل بينها بفاصلة. إذا كتبت ألوان، الزبون لازم يختار واحد قبل الإضافة للسلة.' }),
           field('عروض الكمية', tiersBox, { full: true, help: 'مثال: 3 قطع بـ 15,000. تنحسب باقات: 7 قطع مع عرض 3 = باقتين + قطعة بالسعر العادي. الكمية تنجمع عبر كل الألوان، وإذا وصل عرض بيه توصيل مجاني يصير التوصيل مجاني على الطلب كله.' }),
+          el('div', null, el('label', { class: 'check' }, f.wholesale, 'منتج جملة (اختيار ألوان متعددة)'),
+            el('div', { class: 'help', text: 'الزبون يختار أكثر من لون مرة وحدة، ولكل لون عدد.' })),
+          field('أقل كمية للطلب (اختياري)', f.minQty, { help: 'مجموع كل الألوان. السيرفر يرفض الطلب إذا أقل.' }),
           field('مجموعة العرض (اختياري)', el('div', null, f.group,
             el('datalist', { id: 'offer-groups' }, ...[...new Set(adm.products.map((x) => (x.offer_group || '').trim()).filter(Boolean))].map((g) => el('option', { value: g })))),
             { full: true, help: 'المنتجات بنفس المجموعة تتجمع قطعها للعرض، مثلاً قطعة من موديل وقطعة من موديل ثاني = قطعتين. لازم كلها نفس السعر ونفس عرض الكمية. اتركه فارغ إذا المنتج لحاله.' }),
