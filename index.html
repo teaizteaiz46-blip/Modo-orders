@@ -197,6 +197,12 @@
   .clip-card video { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; background: #000; }
   .clip-card .body { padding: 10px; display: grid; gap: 8px; }
   .new-clip { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 12px; margin-bottom: 16px; }
+  .look-stage { position: relative; width: 340px; max-width: 100%; border-radius: 14px; overflow: hidden; background: #f0ece8; cursor: crosshair; user-select: none; }
+  .look-stage img { width: 100%; display: block; aspect-ratio: 4 / 5; object-fit: cover; pointer-events: none; }
+  .look-dot { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: #FF773D; color: #fff; font-weight: 700; font-size: 14px; display: grid; place-items: center; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35); pointer-events: none; }
+  .look-row { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; }
+  .look-card { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
+  .look-card img { width: 72px; height: 90px; object-fit: cover; border-radius: 10px; }
   .new-clip video { width: 180px; max-width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 12px; background: #000; }
 
   /* ---------- الموبايل ---------- */
@@ -333,6 +339,7 @@
       <button type="button" data-section="products" aria-pressed="false">المنتجات</button>
       <button type="button" data-section="clips" aria-pressed="false">المقاطع</button>
       <button type="button" data-section="push" aria-pressed="false">الإشعارات</button>
+      <button type="button" data-section="looks" aria-pressed="false">الاطلالة</button>
     </nav>
   </header>
 
@@ -387,6 +394,11 @@
   <main class="wrap hidden" id="sec-clips">
     <div class="new-clip" id="new-clip"></div>
     <div class="clip-grid" id="clip-list"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-looks">
+    <div class="new-clip" id="look-editor"></div>
+    <div id="look-list"></div>
   </main>
 
   <main class="wrap hidden" id="sec-push">
@@ -1131,12 +1143,13 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push', 'looks'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
     if (name === 'clips' && !adm.clipsLoaded) loadClips();
     if (name === 'push') openPush();
+    if (name === 'looks') openLooks();
     window.scrollTo(0, 0);
   }
 
@@ -1480,7 +1493,7 @@
             { full: true, help: 'المنتجات بنفس المجموعة تتجمع قطعها للعرض، مثلاً قطعة من موديل وقطعة من موديل ثاني = قطعتين. لازم كلها نفس السعر ونفس عرض الكمية. اتركه فارغ إذا المنتج لحاله.' }),
           field('الوصف', f.desc, { full: true }),
           el('div', null, el('label', { class: 'check' }, f.offer, 'يظهر بقسم العروض')),
-          field('ينتهي العرض (اختياري)', f.ends, { help: 'إذا حددته، يظهر عدّاد تنازلي بعروض الفلاش.' }),
+          field('ينتهي العرض (اختياري)', f.ends, { help: 'إذا حددته، يظهر عدّاد تنازلي بعروض الفلاش. لما يخلص الوقت العرض يخلص فعلاً: إذا اكو سعر قديم مشطوب، السعر يرجع له تلقائياً والمنتج يطلع من العروض.' }),
           field('كلفة الشراء (داخلي)', f.cost, { help: 'لحساب الربح، ما تنعرض بصفحة المنتج.' }),
         ),
         err,
@@ -1513,6 +1526,181 @@
     adm.clips = data || [];
     adm.clipsLoaded = true;
     renderClips();
+  }
+
+  // ---------- اطلالة اليوم ----------
+  // صورة موديل + نقاط على القطع. اضغط على الصورة تنضاف نقطة، واختر منتجها.
+  // التطبيق يعرض أول اطلالة فعالة (الترتيب الأصغر، وبعدين الأحدث).
+  adm.looks = [];
+  async function openLooks() {
+    if (!adm.productsLoaded) await loadProducts();
+    if (!$('look-editor').childElementCount) renderLookEditor(null);
+    loadLooks();
+  }
+
+  async function loadLooks() {
+    $('look-list').replaceChildren(el('div', { class: 'empty', text: 'جاري التحميل...' }));
+    const { data, error } = await db.from('looks').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
+    if (error) { $('look-list').replaceChildren(el('div', { class: 'empty error', text: friendlyError(error) })); return; }
+    adm.looks = data || [];
+    renderLooks();
+  }
+
+  function lookProductName(id) {
+    const p = adm.products.find((x) => x.id === Number(id));
+    return p ? p.name : 'منتج #' + id;
+  }
+
+  function renderLooks() {
+    if (!adm.looks.length) {
+      $('look-list').replaceChildren(el('div', { class: 'empty', text: 'ماكو اطلالات لحد هسه. ارفع صورة فوق وحط النقاط.' }));
+      return;
+    }
+    const now = Date.now();
+    const live = adm.looks.find((l) => l.is_active && (!l.starts_at || new Date(l.starts_at) <= now) && (!l.ends_at || new Date(l.ends_at) > now));
+    $('look-list').replaceChildren(
+      el('h3', { text: 'الاطلالات', style: 'margin:6px 0 10px' }),
+      ...adm.looks.map((l) => el('div', { class: 'look-card' },
+        el('img', { src: l.image_url, alt: '' }),
+        el('div', { style: 'flex:1' },
+          el('div', { class: 'prod-name', text: l.title }),
+          el('div', { class: 'prod-meta', style: 'margin-top:4px' },
+            live && live.id === l.id ? el('span', { class: 'badge green', text: 'ظاهرة بالتطبيق هسه' }) : null,
+            el('span', { class: 'badge ' + (l.is_active ? '' : 'red'), text: l.is_active ? 'فعالة' : 'موقوفة' }),
+            el('span', { text: (l.hotspots || []).length + ' قطعة' }),
+            el('span', { text: 'ترتيب ' + l.sort_order }),
+          ),
+          el('div', { style: 'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap' },
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { renderLookEditor(l); window.scrollTo({ top: 0, behavior: 'smooth' }); } }, 'تعديل'),
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: async () => {
+              const { error } = await db.from('looks').update({ is_active: !l.is_active }).eq('id', l.id);
+              if (error) { toast(friendlyError(error), true); return; }
+              loadLooks();
+            } }, l.is_active ? 'إيقاف' : 'تفعيل'),
+            el('button', { class: 'btn btn-danger btn-sm', type: 'button', onclick: async () => {
+              const ok = await confirmDialog('حذف الاطلالة؟', 'راح تنشال من التطبيق.', 'حذف');
+              if (!ok) return;
+              const { error } = await db.from('looks').delete().eq('id', l.id);
+              if (error) { toast(friendlyError(error), true); return; }
+              const path = storagePathFromUrl(l.image_url);
+              if (path) await db.storage.from(BUCKET).remove([path]);
+              toast('انحذفت');
+              loadLooks();
+            } }, 'حذف'),
+          ),
+        ),
+      )),
+    );
+  }
+
+  function renderLookEditor(look) {
+    const box = $('look-editor');
+    const state = {
+      image: look ? look.image_url : null,
+      spots: look ? (look.hotspots || []).map((h) => ({ x: h.x, y: h.y, product_id: h.product_id })) : [],
+    };
+    const title = el('input', { class: 'field', maxlength: 40, value: look ? look.title : 'اطلالة اليوم' });
+    const order = el('input', { class: 'field', type: 'number', value: look ? look.sort_order : 0, style: 'max-width:120px' });
+    const active = el('input', { type: 'checkbox' });
+    active.checked = look ? look.is_active : true;
+    const toLocal = (v) => { if (!v) return ''; const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+    const starts = el('input', { class: 'field', type: 'datetime-local', value: toLocal(look && look.starts_at) });
+    const ends = el('input', { class: 'field', type: 'datetime-local', value: toLocal(look && look.ends_at) });
+    const file = el('input', { type: 'file', accept: 'image/*', class: 'field' });
+    const stage = el('div', { class: 'look-stage' });
+    const rows = el('div', { style: 'display:grid;gap:8px' });
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, look ? 'حفظ التعديل' : 'حفظ الاطلالة');
+
+    function draw() {
+      stage.replaceChildren(
+        state.image ? el('img', { src: state.image, alt: '' }) : el('div', { class: 'empty', style: 'aspect-ratio:4/5;display:grid;place-items:center', text: 'ارفع صورة الموديل' }),
+        ...state.spots.map((sp, i) => el('span', { class: 'look-dot', style: 'left:' + (sp.x * 100) + '%;top:' + (sp.y * 100) + '%', text: String(i + 1) })),
+      );
+      rows.replaceChildren(...state.spots.map((sp, i) => {
+        const picker = productPicker(sp.product_id, 'ابحث عن القطعة ' + (i + 1));
+        picker.select.addEventListener('change', () => { sp.product_id = Number(picker.select.value) || null; });
+        return el('div', { class: 'look-row' },
+          el('span', { class: 'look-dot', style: 'position:static;margin:0', text: String(i + 1) }),
+          el('div', null, picker.search, el('div', { style: 'height:4px' }), picker.select),
+          el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { state.spots.splice(i, 1); draw(); } }, 'شيل'),
+        );
+      }));
+    }
+
+    stage.addEventListener('click', (ev) => {
+      if (!state.image) return;
+      const r = stage.getBoundingClientRect();
+      const x = Math.min(0.96, Math.max(0.04, (ev.clientX - r.left) / r.width));
+      const y = Math.min(0.96, Math.max(0.04, (ev.clientY - r.top) / r.height));
+      if (state.spots.length >= 8) { err.textContent = 'أكثر شي 8 قطع بالاطلالة'; return; }
+      state.spots.push({ x: Math.round(x * 1000) / 1000, y: Math.round(y * 1000) / 1000, product_id: null });
+      draw();
+    });
+
+    file.addEventListener('change', async () => {
+      err.textContent = '';
+      const img = file.files[0];
+      if (!img) return;
+      save.disabled = true;
+      try {
+        const blob = await compressImage(img, 1400, 0.85);
+        state.image = await uploadFile(blob, img.name, 'jpg', 'image/jpeg');
+        draw();
+      } catch (e) {
+        err.textContent = 'ما انرفعت الصورة: ' + (e.message || e);
+      } finally {
+        save.disabled = false;
+      }
+    });
+
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      if (!state.image) { err.textContent = 'ارفع صورة الموديل'; return; }
+      const spots = state.spots.filter((sp) => sp.product_id);
+      if (!spots.length) { err.textContent = 'اضغط على الصورة فوق كل قطعة واختر منتجها (قطعة وحدة على الأقل)'; return; }
+      if (spots.length < state.spots.length) { err.textContent = 'اكو نقطة بدون منتج، اختر منتجها أو شيلها'; return; }
+      const row = {
+        title: title.value.trim() || 'اطلالة اليوم',
+        image_url: state.image,
+        hotspots: spots,
+        is_active: active.checked,
+        sort_order: Number(order.value) || 0,
+        starts_at: starts.value ? new Date(starts.value).toISOString() : null,
+        ends_at: ends.value ? new Date(ends.value).toISOString() : null,
+      };
+      save.disabled = true;
+      const q = look ? db.from('looks').update(row).eq('id', look.id) : db.from('looks').insert(row);
+      const { error } = await q;
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      toast(look ? 'انحفظ التعديل ✅' : 'انضافت الاطلالة ✅');
+      renderLookEditor(null);
+      loadLooks();
+    });
+
+    draw();
+    box.replaceChildren(
+      el('h3', { text: look ? 'تعديل الاطلالة' : 'اطلالة جديدة', style: 'margin:0' }),
+      el('div', { class: 'help', text: '1) ارفع صورة موديل (طولية أحسن). 2) اضغط على الصورة فوق كل قطعة لابستها، تطلع نقطة برقم. 3) اختر منتج كل نقطة. بالتطبيق الزبونة تضغط النقطة ويطلعلها اسم القطعة وسعرها.' }),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'العنوان' }), title),
+        el('div', null, el('label', { class: 'lbl', text: 'الترتيب (الأصغر يطلع أول)' }), order),
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'صورة الموديل' }), file),
+      ),
+      stage,
+      rows,
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'تبدي (اختياري)' }), starts),
+        el('div', null, el('label', { class: 'lbl', text: 'تخلص (اختياري)' }), ends),
+      ),
+      el('label', { style: 'display:flex;gap:8px;align-items:center' }, active, 'فعالة (تطلع بالتطبيق)'),
+      err,
+      el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+        save,
+        look ? el('button', { class: 'btn', type: 'button', onclick: () => renderLookEditor(null) }, 'إلغاء') : null,
+      ),
+    );
   }
 
   // ---------- الإشعارات (Firebase) ----------
@@ -1762,7 +1950,8 @@
     await db.auth.signOut();
     state.orders = [];
     state.itemsCache.clear();
-    adm.products = []; adm.productsLoaded = false; adm.clips = []; adm.clipsLoaded = false;
+    adm.products = []; adm.productsLoaded = false; adm.clips = []; adm.clipsLoaded = false; adm.looks = [];
+    $('look-editor').replaceChildren();
     showSection('orders');
     closeDetail();
     showLogin();
@@ -1773,6 +1962,7 @@
     if (adm.section === 'products') { loadProducts(); return; }
     if (adm.section === 'clips') { loadClips(); return; }
     if (adm.section === 'push') { loadPushLog(); return; }
+    if (adm.section === 'looks') { loadLooks(); return; }
     state.itemsCache.clear();
     loadOrders();
   });
