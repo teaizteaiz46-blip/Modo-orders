@@ -202,6 +202,8 @@
   .look-dot { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: #FF773D; color: #fff; font-weight: 700; font-size: 14px; display: grid; place-items: center; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35); pointer-events: none; }
   .look-row { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; }
   .look-card { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
+  .story-thumb { width: 72px; height: 128px; object-fit: cover; border-radius: 10px; background: #f0ece8; }
+  .story-preview { width: 180px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 14px; background: #f0ece8; }
   .look-card img { width: 72px; height: 90px; object-fit: cover; border-radius: 10px; }
   .new-clip video { width: 180px; max-width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 12px; background: #000; }
 
@@ -340,6 +342,7 @@
       <button type="button" data-section="clips" aria-pressed="false">المقاطع</button>
       <button type="button" data-section="push" aria-pressed="false">الإشعارات</button>
       <button type="button" data-section="looks" aria-pressed="false">الاطلالة</button>
+      <button type="button" data-section="stories" aria-pressed="false">الستوري</button>
     </nav>
   </header>
 
@@ -394,6 +397,11 @@
   <main class="wrap hidden" id="sec-clips">
     <div class="new-clip" id="new-clip"></div>
     <div class="clip-grid" id="clip-list"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-stories">
+    <div class="new-clip" id="story-editor"></div>
+    <div id="story-list"></div>
   </main>
 
   <main class="wrap hidden" id="sec-looks">
@@ -1143,13 +1151,14 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push', 'looks'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push', 'looks', 'stories'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
     if (name === 'clips' && !adm.clipsLoaded) loadClips();
     if (name === 'push') openPush();
     if (name === 'looks') openLooks();
+    if (name === 'stories') openStories();
     window.scrollTo(0, 0);
   }
 
@@ -1526,6 +1535,193 @@
     adm.clips = data || [];
     adm.clipsLoaded = true;
     renderClips();
+  }
+
+  // ---------- ستوري الصور ----------
+  // صورة طولية (1080×1920 أحسن) تطلع بأول الواجهة. بالتطبيق تبقى 5 ثواني، وزر "تسوّقي هسه" يفتح الرابط.
+  const STORY_LINKS = [
+    ['none', 'بدون رابط'],
+    ['product', 'منتج'],
+    ['category', 'قسم'],
+    ['price', 'تحت سعر معيّن'],
+    ['bulk', 'عروض الكمية'],
+    ['offers', 'العروض'],
+  ];
+  adm.stories = [];
+  async function openStories() {
+    if (!adm.productsLoaded) await loadProducts();
+    if (!adm.categories.length) await loadCategories();
+    if (!$('story-editor').childElementCount) renderStoryEditor(null);
+    loadStories();
+  }
+
+  async function loadStories() {
+    $('story-list').replaceChildren(el('div', { class: 'empty', text: 'جاري التحميل...' }));
+    const { data, error } = await db.from('stories').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
+    if (error) { $('story-list').replaceChildren(el('div', { class: 'empty error', text: friendlyError(error) })); return; }
+    adm.stories = data || [];
+    renderStories();
+  }
+
+  function storyLinkText(st) {
+    const v = st.link_value;
+    switch (st.link_type) {
+      case 'product': { const p = adm.products.find((x) => String(x.id) === String(v)); return 'منتج: ' + (p ? p.name : '#' + v); }
+      case 'category': return 'قسم: ' + catName(Number(v));
+      case 'price': return 'تحت ' + Number(v).toLocaleString('en') + ' د.ع';
+      case 'bulk': return 'عروض الكمية';
+      case 'offers': return 'العروض';
+      default: return 'بدون رابط';
+    }
+  }
+
+  function renderStories() {
+    if (!adm.stories.length) {
+      $('story-list').replaceChildren(el('div', { class: 'empty', text: 'ماكو ستوريات صور لحد هسه' }));
+      return;
+    }
+    const now = Date.now();
+    const live = (st) => st.is_active && (!st.starts_at || new Date(st.starts_at) <= now) && (!st.ends_at || new Date(st.ends_at) > now);
+    $('story-list').replaceChildren(
+      el('h3', { text: 'الستوريات', style: 'margin:6px 0 10px' }),
+      el('div', { class: 'help', style: 'margin-bottom:10px', text: 'الترتيب الأصغر يطلع أول. فيديوهات قسم "المقاطع" تطلع هم ستوري بعد الصور.' }),
+      ...adm.stories.map((st) => el('div', { class: 'look-card' },
+        el('img', { class: 'story-thumb', src: st.image_url, alt: '' }),
+        el('div', { style: 'flex:1' },
+          el('div', { class: 'prod-name', text: st.title || '(بدون عنوان)' }),
+          el('div', { class: 'help', text: storyLinkText(st) }),
+          el('div', { class: 'prod-meta', style: 'margin-top:4px' },
+            live(st) ? el('span', { class: 'badge green', text: 'ظاهر بالتطبيق' }) : el('span', { class: 'badge red', text: st.is_active ? 'خارج وقته' : 'موقوف' }),
+            el('span', { text: 'ترتيب ' + st.sort_order }),
+            st.ends_at ? el('span', { text: 'ينتهي ' + dtFull.format(new Date(st.ends_at)) }) : null,
+          ),
+          el('div', { style: 'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap' },
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { renderStoryEditor(st); window.scrollTo({ top: 0, behavior: 'smooth' }); } }, 'تعديل'),
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: async () => {
+              const { error } = await db.from('stories').update({ is_active: !st.is_active }).eq('id', st.id);
+              if (error) { toast(friendlyError(error), true); return; }
+              loadStories();
+            } }, st.is_active ? 'إيقاف' : 'تفعيل'),
+            el('button', { class: 'btn btn-danger btn-sm', type: 'button', onclick: async () => {
+              const ok = await confirmDialog('حذف الستوري؟', 'راح ينشال من التطبيق.', 'حذف');
+              if (!ok) return;
+              const { error } = await db.from('stories').delete().eq('id', st.id);
+              if (error) { toast(friendlyError(error), true); return; }
+              const path = storagePathFromUrl(st.image_url);
+              if (path) await db.storage.from(BUCKET).remove([path]);
+              toast('انحذف');
+              loadStories();
+            } }, 'حذف'),
+          ),
+        ),
+      )),
+    );
+  }
+
+  function renderStoryEditor(story) {
+    const box = $('story-editor');
+    let image = story ? story.image_url : null;
+    const title = el('input', { class: 'field', maxlength: 20, placeholder: 'مثال: عرض الجفسة', value: story ? story.title : '' });
+    const order = el('input', { class: 'field', type: 'number', value: story ? story.sort_order : 0, style: 'max-width:120px' });
+    const active = el('input', { type: 'checkbox' });
+    active.checked = story ? story.is_active : true;
+    const toLocal = (v) => { if (!v) return ''; const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+    const starts = el('input', { class: 'field', type: 'datetime-local', value: toLocal(story && story.starts_at) });
+    const ends = el('input', { class: 'field', type: 'datetime-local', value: toLocal(story && story.ends_at) });
+    const file = el('input', { type: 'file', accept: 'image/*', class: 'field' });
+    const preview = el('img', { class: 'story-preview', alt: '' });
+    const linkType = el('select', { class: 'field' }, ...STORY_LINKS.map(([v, t]) => el('option', { value: v, text: t })));
+    linkType.value = story ? story.link_type : 'none';
+    const picker = productPicker(story && story.link_type === 'product' ? Number(story.link_value) : null, 'ابحث عن المنتج');
+    const cat = el('select', { class: 'field' }, ...adm.categories.map((c) => el('option', { value: c.id, text: c.name })));
+    if (story && story.link_type === 'category') cat.value = story.link_value;
+    const price = el('input', { class: 'field', type: 'number', min: 500, step: 500, placeholder: 'مثلاً 5000', value: story && story.link_type === 'price' ? story.link_value : '' });
+    const valueBox = el('div');
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, story ? 'حفظ التعديل' : 'حفظ الستوري');
+
+    const drawPreview = () => {
+      preview.classList.toggle('hidden', !image);
+      if (image) preview.src = image;
+    };
+    const drawValue = () => {
+      const t = linkType.value;
+      valueBox.replaceChildren(
+        t === 'product' ? el('div', null, picker.search, el('div', { style: 'height:4px' }), picker.select) : '',
+        t === 'category' ? cat : '',
+        t === 'price' ? price : '',
+      );
+    };
+    linkType.addEventListener('change', drawValue);
+
+    file.addEventListener('change', async () => {
+      err.textContent = '';
+      const img = file.files[0];
+      if (!img) return;
+      save.disabled = true;
+      try {
+        const blob = await compressImage(img, 1920, 0.85);
+        image = await uploadFile(blob, img.name, 'jpg', 'image/jpeg');
+        drawPreview();
+      } catch (e) {
+        err.textContent = 'ما انرفعت الصورة: ' + (e.message || e);
+      } finally {
+        save.disabled = false;
+      }
+    });
+
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      if (!image) { err.textContent = 'ارفع صورة الستوري'; return; }
+      const t = linkType.value;
+      let value = null;
+      if (t === 'product') { value = picker.select.value; if (!value) { err.textContent = 'اختر المنتج'; return; } }
+      if (t === 'category') { value = cat.value; if (!value) { err.textContent = 'اختر القسم'; return; } }
+      if (t === 'price') { value = price.value; if (!(Number(value) > 0)) { err.textContent = 'اكتب السعر'; return; } }
+      const row = {
+        title: title.value.trim(),
+        image_url: image,
+        link_type: t,
+        link_value: value,
+        is_active: active.checked,
+        sort_order: Number(order.value) || 0,
+        starts_at: starts.value ? new Date(starts.value).toISOString() : null,
+        ends_at: ends.value ? new Date(ends.value).toISOString() : null,
+      };
+      save.disabled = true;
+      const q = story ? db.from('stories').update(row).eq('id', story.id) : db.from('stories').insert(row);
+      const { error } = await q;
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      toast(story ? 'انحفظ التعديل ✅' : 'انضاف الستوري ✅');
+      renderStoryEditor(null);
+      loadStories();
+    });
+
+    drawPreview();
+    drawValue();
+    box.replaceChildren(
+      el('h3', { text: story ? 'تعديل ستوري' : 'ستوري صورة جديد', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'صورة طولية بقياس 1080×1920 (مثل ستوري الإنستغرام). خلي الكتابة بعيدة عن الحواف وعن أسفل الصورة، لأن بالتطبيق اكو زر "تسوّقي هسه" تحت.' }),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'الاسم تحت الدائرة' }), title),
+        el('div', null, el('label', { class: 'lbl', text: 'الترتيب (الأصغر يطلع أول)' }), order),
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'الصورة' }), file),
+      ),
+      preview,
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'زر "تسوّقي هسه" يفتح' }), linkType),
+        el('div', null, el('label', { class: 'lbl', text: ' ' }), valueBox),
+        el('div', null, el('label', { class: 'lbl', text: 'يبدي (اختياري)' }), starts),
+        el('div', null, el('label', { class: 'lbl', text: 'ينتهي (اختياري)' }), ends),
+      ),
+      el('label', { style: 'display:flex;gap:8px;align-items:center' }, active, 'فعال (يطلع بالتطبيق)'),
+      err,
+      el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+        save,
+        story ? el('button', { class: 'btn', type: 'button', onclick: () => renderStoryEditor(null) }, 'إلغاء') : null,
+      ),
+    );
   }
 
   // ---------- اطلالة اليوم ----------
@@ -1950,8 +2146,9 @@
     await db.auth.signOut();
     state.orders = [];
     state.itemsCache.clear();
-    adm.products = []; adm.productsLoaded = false; adm.clips = []; adm.clipsLoaded = false; adm.looks = [];
+    adm.products = []; adm.productsLoaded = false; adm.clips = []; adm.clipsLoaded = false; adm.looks = []; adm.stories = [];
     $('look-editor').replaceChildren();
+    $('story-editor').replaceChildren();
     showSection('orders');
     closeDetail();
     showLogin();
@@ -1963,6 +2160,7 @@
     if (adm.section === 'clips') { loadClips(); return; }
     if (adm.section === 'push') { loadPushLog(); return; }
     if (adm.section === 'looks') { loadLooks(); return; }
+    if (adm.section === 'stories') { loadStories(); return; }
     state.itemsCache.clear();
     loadOrders();
   });
