@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حمّلي تطبيق MODO</title>
+<meta name="description" content="تطبيق MODO: حجابات، شالات، عبايات وملابس. توصيل لكل العراق والدفع عند الاستلام.">
+<meta property="og:title" content="حمّلي تطبيق MODO">
+<meta property="og:description" content="موديلات جديدة كل أسبوع · توصيل لكل العراق · الدفع عند الاستلام">
+<link rel="icon" href="https://modoiq.netlify.app/favicon.png">
+<style>
+  :root { --brand: #FF6A2B; --ink: #1E1B18; --bg: #1B1A1F; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: #fff; font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; display: grid; place-items: center; padding: 24px 16px; }
+  .card { width: 100%; max-width: 380px; text-align: center; }
+  .icon { width: 104px; height: 104px; border-radius: 26px; background: #fff; padding: 8px; margin: 0 auto 16px; display: block; }
+  h1 { font-size: 30px; margin: 0; letter-spacing: 1px; direction: ltr; }
+  p { color: #cfcac6; margin: 8px 0 24px; line-height: 1.6; }
+  a.btn { display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: #fff; background: #000; border: 1.5px solid #8a8a8a; border-radius: 14px; padding: 14px; margin-top: 12px; font-weight: 700; font-size: 17px; direction: ltr; }
+  a.btn.primary { background: var(--brand); border-color: var(--brand); }
+  .note { font-size: 13px; color: #9a948f; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <img class="icon" src="app-icon.png" alt="">
+  <h1>Modo Iraq</h1>
+  <p>حجابات، شالات، عبايات وملابس<br>توصيل لكل العراق · الدفع عند الاستلام</p>
+  <a class="btn" id="ios" href="https://apps.apple.com/app/id6754703322"> App Store</a>
+  <a class="btn" id="android" href="https://play.google.com/store/apps/details?id=iq.ameerazax.velin">▶ Google Play</a>
+  <div class="note" id="note"></div>
+</div>
+<script>
+(() => {
+  'use strict';
+  // رابط واحد للإنستغرام والإعلانات: الآيفون يروح لـ App Store والأندرويد لـ Google Play.
+  // نسجّل الزيارة بجدول page_visits (insert فقط) مثل p.html.
+  const SUPABASE_URL = 'https://pajxormplmloivyankji.supabase.co';
+  const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhanhvcm1wbG1sb2l2eWFua2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0ODQ3OTksImV4cCI6MjA3NjA2MDc5OX0.eEPB_Gt5HywU9oGNXLpSNc4IA7CTTL7CX-EMKDE3yec';
+  const params = new URLSearchParams(location.search);
+  const clip = (v, max) => (v ? String(v).slice(0, max) : null);
+  const utmSource = params.get('utm_source') || (params.get('fbclid') ? 'meta' : 'direct');
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && 'ontouchend' in document);
+  const isAndroid = /Android/i.test(ua);
+
+  function visitorId() {
+    try {
+      let v = localStorage.getItem('modo_visitor_id');
+      if (!v) {
+        v = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+        localStorage.setItem('modo_visitor_id', v);
+      }
+      return v;
+    } catch { return null; }
+  }
+
+  function track(event) {
+    try {
+      fetch(`${SUPABASE_URL}/rest/v1/page_visits`, {
+        method: 'POST',
+        keepalive: true,
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          event,
+          product_id: null,
+          utm_source: clip(utmSource, 100),
+          utm_campaign: clip(params.get('utm_campaign') || 'app_link', 200),
+          referrer: clip(document.referrer, 300),
+          visitor_id: clip(visitorId(), 64),
+        }),
+      }).catch(() => {});
+    } catch {}
+  }
+
+  const ios = document.getElementById('ios');
+  const android = document.getElementById('android');
+  ios.addEventListener('click', () => track('click_appstore'));
+  android.addEventListener('click', () => track('click_play'));
+  track('view');
+
+  // الموبايل: نودّيه للمتجر الصحيح مباشرة
+  if (isIOS || isAndroid) {
+    const target = isIOS ? ios : android;
+    target.classList.add('primary');
+    document.getElementById('note').textContent = 'جاري فتح المتجر...';
+    setTimeout(() => {
+      track(isIOS ? 'click_appstore' : 'click_play');
+      location.href = target.href;
+    }, 350);
+  }
+})();
+</script>
+</body>
+</html>
