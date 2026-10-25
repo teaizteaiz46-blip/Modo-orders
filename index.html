@@ -343,6 +343,7 @@
       <button type="button" data-section="push" aria-pressed="false">الإشعارات</button>
       <button type="button" data-section="looks" aria-pressed="false">الاطلالة</button>
       <button type="button" data-section="stories" aria-pressed="false">الستوري</button>
+      <button type="button" data-section="splash" aria-pressed="false">إعلان الافتتاح</button>
     </nav>
   </header>
 
@@ -397,6 +398,11 @@
   <main class="wrap hidden" id="sec-clips">
     <div class="new-clip" id="new-clip"></div>
     <div class="clip-grid" id="clip-list"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-splash">
+    <div class="new-clip" id="splash-editor"></div>
+    <div id="splash-list"></div>
   </main>
 
   <main class="wrap hidden" id="sec-stories">
@@ -1151,7 +1157,7 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push', 'looks', 'stories'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
@@ -1159,6 +1165,7 @@
     if (name === 'push') openPush();
     if (name === 'looks') openLooks();
     if (name === 'stories') openStories();
+    if (name === 'splash') openSplash();
     window.scrollTo(0, 0);
   }
 
@@ -1535,6 +1542,186 @@
     adm.clips = data || [];
     adm.clipsLoaded = true;
     renderClips();
+  }
+
+  // ---------- إعلان الافتتاح ----------
+  // صورة كاملة تطلع لما ينفتح التطبيق (نسخة 1.7.8+). التطبيق ياخذ أول إعلان فعّال حسب الترتيب.
+  adm.splash = [];
+  async function openSplash() {
+    if (!adm.productsLoaded) await loadProducts();
+    if (!adm.categories.length) await loadCategories();
+    if (!$('splash-editor').childElementCount) renderSplashEditor(null);
+    loadSplash();
+  }
+
+  async function loadSplash() {
+    $('splash-list').replaceChildren(el('div', { class: 'empty', text: 'جاري التحميل...' }));
+    const { data, error } = await db.from('splash_ads').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
+    if (error) { $('splash-list').replaceChildren(el('div', { class: 'empty error', text: friendlyError(error) })); return; }
+    adm.splash = data || [];
+    renderSplash();
+  }
+
+  function renderSplash() {
+    if (!adm.splash.length) {
+      $('splash-list').replaceChildren(el('div', { class: 'empty', text: 'ماكو إعلانات افتتاح لحد هسه' }));
+      return;
+    }
+    const now = Date.now();
+    const live = (a) => a.is_active && (!a.starts_at || new Date(a.starts_at) <= now) && (!a.ends_at || new Date(a.ends_at) > now);
+    const current = adm.splash.find(live);
+    $('splash-list').replaceChildren(
+      el('h3', { text: 'الإعلانات', style: 'margin:6px 0 10px' }),
+      el('div', { class: 'help', style: 'margin-bottom:10px', text: 'يطلع إعلان واحد بس: أول واحد فعّال حسب الترتيب. الإعلان الجديد يوصل للموبايل بالخلفية ويطلع من الفتحة الجاية للتطبيق.' }),
+      ...adm.splash.map((a) => el('div', { class: 'look-card' },
+        el('img', { class: 'story-thumb', src: a.image_url, alt: '' }),
+        el('div', { style: 'flex:1' },
+          el('div', { class: 'prod-name', text: a.title || '(بدون عنوان)' }),
+          el('div', { class: 'help', text: storyLinkText(a) + (a.link_type !== 'none' ? ' · زر: ' + a.button_text : '') }),
+          el('div', { class: 'prod-meta', style: 'margin-top:4px' },
+            current && current.id === a.id ? el('span', { class: 'badge green', text: 'ظاهر بالتطبيق' })
+              : el('span', { class: 'badge ' + (live(a) ? '' : 'red'), text: !a.is_active ? 'موقوف' : live(a) ? 'بالانتظار (ترتيبه بعد غيره)' : 'خارج وقته' }),
+            el('span', { text: a.duration_sec + ' ثواني' }),
+            el('span', { text: a.min_hours_between ? 'مرة كل ' + a.min_hours_between + ' ساعة' : 'كل فتحة' }),
+            a.ends_at ? el('span', { text: 'ينتهي ' + dtFull.format(new Date(a.ends_at)) }) : null,
+          ),
+          el('div', { style: 'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap' },
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { renderSplashEditor(a); window.scrollTo({ top: 0, behavior: 'smooth' }); } }, 'تعديل'),
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: async () => {
+              const { error } = await db.from('splash_ads').update({ is_active: !a.is_active }).eq('id', a.id);
+              if (error) { toast(friendlyError(error), true); return; }
+              loadSplash();
+            } }, a.is_active ? 'إيقاف' : 'تفعيل'),
+            el('button', { class: 'btn btn-danger btn-sm', type: 'button', onclick: async () => {
+              const ok = await confirmDialog('حذف الإعلان؟', 'راح ينشال من التطبيق.', 'حذف');
+              if (!ok) return;
+              const { error } = await db.from('splash_ads').delete().eq('id', a.id);
+              if (error) { toast(friendlyError(error), true); return; }
+              const path = storagePathFromUrl(a.image_url);
+              if (path) await db.storage.from(BUCKET).remove([path]);
+              toast('انحذف');
+              loadSplash();
+            } }, 'حذف'),
+          ),
+        ),
+      )),
+    );
+  }
+
+  function renderSplashEditor(ad) {
+    const box = $('splash-editor');
+    let image = ad ? ad.image_url : null;
+    const title = el('input', { class: 'field', maxlength: 40, placeholder: 'للإدارة بس، مثال: عرض الجفسة', value: ad ? ad.title : '' });
+    const order = el('input', { class: 'field', type: 'number', value: ad ? ad.sort_order : 0, style: 'max-width:120px' });
+    const active = el('input', { type: 'checkbox' });
+    active.checked = ad ? ad.is_active : true;
+    const toLocal = (v) => { if (!v) return ''; const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+    const starts = el('input', { class: 'field', type: 'datetime-local', value: toLocal(ad && ad.starts_at) });
+    const ends = el('input', { class: 'field', type: 'datetime-local', value: toLocal(ad && ad.ends_at) });
+    const duration = el('select', { class: 'field' }, ...[2, 3, 4, 5, 6, 8].map((n) => el('option', { value: n, text: n + ' ثواني' })));
+    duration.value = String(ad ? ad.duration_sec : 3);
+    const hours = el('select', { class: 'field' },
+      ...[[0, 'كل مرة ينفتح التطبيق'], [3, 'مرة كل 3 ساعات'], [6, 'مرة كل 6 ساعات'], [12, 'مرة كل 12 ساعة'], [24, 'مرة باليوم']].map(([v, t]) => el('option', { value: v, text: t })));
+    hours.value = String(ad ? ad.min_hours_between : 6);
+    const buttonText = el('input', { class: 'field', maxlength: 30, value: ad ? ad.button_text : 'تسوّقي هسه' });
+    const file = el('input', { type: 'file', accept: 'image/*', class: 'field' });
+    const preview = el('img', { class: 'story-preview', alt: '' });
+    const linkType = el('select', { class: 'field' }, ...STORY_LINKS.map(([v, t]) => el('option', { value: v, text: t })));
+    linkType.value = ad ? ad.link_type : 'none';
+    const picker = productPicker(ad && ad.link_type === 'product' ? Number(ad.link_value) : null, 'ابحث عن المنتج');
+    const cat = el('select', { class: 'field' }, ...adm.categories.map((c) => el('option', { value: c.id, text: c.name })));
+    if (ad && ad.link_type === 'category') cat.value = ad.link_value;
+    const price = el('input', { class: 'field', type: 'number', min: 500, step: 500, placeholder: 'مثلاً 5000', value: ad && ad.link_type === 'price' ? ad.link_value : '' });
+    const valueBox = el('div');
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, ad ? 'حفظ التعديل' : 'حفظ الإعلان');
+
+    const drawPreview = () => { preview.classList.toggle('hidden', !image); if (image) preview.src = image; };
+    const drawValue = () => {
+      const t = linkType.value;
+      valueBox.replaceChildren(
+        t === 'product' ? el('div', null, picker.search, el('div', { style: 'height:4px' }), picker.select) : '',
+        t === 'category' ? cat : '',
+        t === 'price' ? price : '',
+      );
+    };
+    linkType.addEventListener('change', drawValue);
+
+    file.addEventListener('change', async () => {
+      err.textContent = '';
+      const img = file.files[0];
+      if (!img) return;
+      save.disabled = true;
+      try {
+        const blob = await compressImage(img, 1920, 0.85);
+        image = await uploadFile(blob, img.name, 'jpg', 'image/jpeg');
+        drawPreview();
+      } catch (e) {
+        err.textContent = 'ما انرفعت الصورة: ' + (e.message || e);
+      } finally {
+        save.disabled = false;
+      }
+    });
+
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      if (!image) { err.textContent = 'ارفع صورة الإعلان'; return; }
+      const t = linkType.value;
+      let value = null;
+      if (t === 'product') { value = picker.select.value; if (!value) { err.textContent = 'اختر المنتج'; return; } }
+      if (t === 'category') { value = cat.value; if (!value) { err.textContent = 'اختر القسم'; return; } }
+      if (t === 'price') { value = price.value; if (!(Number(value) > 0)) { err.textContent = 'اكتب السعر'; return; } }
+      if (t !== 'none' && !buttonText.value.trim()) { err.textContent = 'اكتب نص الزر'; return; }
+      const row = {
+        title: title.value.trim(),
+        image_url: image,
+        link_type: t,
+        link_value: value,
+        button_text: buttonText.value.trim() || 'تسوّقي هسه',
+        duration_sec: Number(duration.value),
+        min_hours_between: Number(hours.value),
+        is_active: active.checked,
+        sort_order: Number(order.value) || 0,
+        starts_at: starts.value ? new Date(starts.value).toISOString() : null,
+        ends_at: ends.value ? new Date(ends.value).toISOString() : null,
+      };
+      save.disabled = true;
+      const q = ad ? db.from('splash_ads').update(row).eq('id', ad.id) : db.from('splash_ads').insert(row);
+      const { error } = await q;
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      toast(ad ? 'انحفظ التعديل ✅' : 'انضاف الإعلان ✅');
+      renderSplashEditor(null);
+      loadSplash();
+    });
+
+    drawPreview();
+    drawValue();
+    box.replaceChildren(
+      el('h3', { text: ad ? 'تعديل إعلان الافتتاح' : 'إعلان افتتاح جديد', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'صورة طولية (1080×1920 أحسن). تطلع بالشاشة كاملة لما ينفتح التطبيق، ويه زر "تخطي". خلي الكتابة المهمة بنص الصورة، لأن زر العرض يطلع تحت.' }),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'اسم الإعلان' }), title),
+        el('div', null, el('label', { class: 'lbl', text: 'الترتيب (الأصغر يطلع أول)' }), order),
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'الصورة' }), file),
+      ),
+      preview,
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'الزر يفتح' }), linkType),
+        el('div', null, el('label', { class: 'lbl', text: ' ' }), valueBox),
+        el('div', null, el('label', { class: 'lbl', text: 'نص الزر' }), buttonText),
+        el('div', null, el('label', { class: 'lbl', text: 'مدة العرض' }), duration),
+        el('div', null, el('label', { class: 'lbl', text: 'كم مرة يطلع للزبونة' }), hours),
+        el('div', null, el('label', { class: 'lbl', text: ' ' }), el('label', { style: 'display:flex;gap:8px;align-items:center;margin-top:10px' }, active, 'فعّال')),
+        el('div', null, el('label', { class: 'lbl', text: 'يبدي (اختياري)' }), starts),
+        el('div', null, el('label', { class: 'lbl', text: 'ينتهي (اختياري)' }), ends),
+      ),
+      err,
+      el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+        save,
+        ad ? el('button', { class: 'btn', type: 'button', onclick: () => renderSplashEditor(null) }, 'إلغاء') : null,
+      ),
+    );
   }
 
   // ---------- ستوري الصور ----------
@@ -2146,7 +2333,8 @@
     await db.auth.signOut();
     state.orders = [];
     state.itemsCache.clear();
-    adm.products = []; adm.productsLoaded = false; adm.clips = []; adm.clipsLoaded = false; adm.looks = []; adm.stories = [];
+    adm.products = []; adm.productsLoaded = false; adm.clips = []; adm.clipsLoaded = false; adm.looks = []; adm.stories = []; adm.splash = [];
+    $('splash-editor').replaceChildren();
     $('look-editor').replaceChildren();
     $('story-editor').replaceChildren();
     showSection('orders');
@@ -2161,6 +2349,7 @@
     if (adm.section === 'push') { loadPushLog(); return; }
     if (adm.section === 'looks') { loadLooks(); return; }
     if (adm.section === 'stories') { loadStories(); return; }
+    if (adm.section === 'splash') { loadSplash(); return; }
     state.itemsCache.clear();
     loadOrders();
   });
