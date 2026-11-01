@@ -2110,6 +2110,46 @@
     picker.select.addEventListener('change', updatePreview);
     updatePreview();
 
+    // صورة الإشعار: افتراضياً صورة المنتج، أو صورة خاصة (بانر مثلاً)، أو بدون صورة
+    const imgMode = el('select', { class: 'field' },
+      el('option', { value: 'product', text: 'صورة المنتج المختار' }),
+      el('option', { value: 'custom', text: 'صورة خاصة (ارفعها)' }),
+      el('option', { value: 'none', text: 'بدون صورة' }),
+    );
+    const imgFile = el('input', { type: 'file', accept: 'image/*', class: 'field hidden' });
+    const imgThumb = el('img', { alt: '', style: 'display:none;max-width:260px;max-height:150px;border-radius:12px;margin-top:8px;object-fit:cover;border:1px solid #eee' });
+    let customImageUrl = null;
+    const currentImage = () => {
+      if (imgMode.value === 'none') return null;
+      if (imgMode.value === 'custom') return customImageUrl;
+      const p = adm.products.find((x) => String(x.id) === picker.select.value);
+      return p && Array.isArray(p.image_url) ? (p.image_url[0] || null) : null;
+    };
+    const refreshThumb = () => {
+      imgFile.classList.toggle('hidden', imgMode.value !== 'custom');
+      const u = currentImage();
+      imgThumb.style.display = u ? 'block' : 'none';
+      if (u) imgThumb.src = u;
+    };
+    imgMode.addEventListener('change', refreshThumb);
+    picker.select.addEventListener('change', refreshThumb);
+    imgFile.addEventListener('change', async () => {
+      const file = imgFile.files && imgFile.files[0];
+      if (!file) return;
+      err.textContent = '';
+      buttons.forEach((x) => { x.disabled = true; });
+      try {
+        const blob = await compressImage(file, 1200, 0.85);
+        customImageUrl = await uploadFile(blob, file.name, 'jpg', 'image/jpeg');
+        refreshThumb();
+      } catch (e) {
+        err.textContent = 'ما انرفعت الصورة: ' + (e.message || e);
+      } finally {
+        buttons.forEach((x) => { x.disabled = false; });
+      }
+    });
+    refreshThumb();
+
     const buttons = [];
     async function send(target) {
       err.textContent = '';
@@ -2117,6 +2157,7 @@
       const b = body.value.trim();
       if (!t || !b) { err.textContent = 'اكتب العنوان والنص'; return; }
       const p = adm.products.find((x) => String(x.id) === picker.select.value);
+      if (imgMode.value === 'custom' && !customImageUrl) { err.textContent = 'ارفع الصورة أول، أو اختار صورة المنتج'; return; }
       if (target === 'all') {
         const ok = await confirmDialog('إرسال لكل الزبائن؟', 'راح يوصل الإشعار "' + t + '" لكل الي منزلين التطبيق، وما ينگدر يتراجع بعد الإرسال.', 'إرسال للكل');
         if (!ok) return;
@@ -2127,7 +2168,7 @@
           body: {
             target, title: t, body: b,
             product_id: p ? p.id : null,
-            image: p && Array.isArray(p.image_url) ? (p.image_url[0] || null) : null,
+            image: currentImage(),
           },
         });
         if (error) {
@@ -2154,8 +2195,9 @@
         el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'العنوان *' }), title),
         el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'النص *' }), body),
         el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'منتج (اختياري)' }), picker.search, picker.select, preview),
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'صورة الإشعار' }), imgMode, imgFile, imgThumb),
       ),
-      el('div', { class: 'help', text: 'التجربة توصل بس لأجهزة المشرفين المسجلين دخول بنسخة التطبيق 1.7.5 أو أحدث. صورة المنتج تطلع بإشعار الأندرويد.' }),
+      el('div', { class: 'help', text: 'التجربة توصل بس لأجهزة المشرفين المسجلين دخول بنسخة التطبيق 1.7.5 أو أحدث. الصورة تطلع بالأندرويد، وبالآيفون من نسخة 1.7.11 وأحدث. الصورة العريضة (مثل البانر) تطلع أحلى.' }),
       err,
       el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px' }, ...buttons),
     );
