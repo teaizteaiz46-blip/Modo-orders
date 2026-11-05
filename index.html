@@ -105,6 +105,11 @@
   .st-ready { background: #F0EBFF; color: #5B3CC4; }
   .st-done { background: #E5F5EA; color: #1E7B3A; }
   .st-cancelled { background: var(--danger-soft); color: var(--danger); }
+  .cust-ok { color: #1E7B3A; font-weight: 600; }
+  .cust-change { color: var(--danger); font-weight: 600; }
+  .cust-box { padding: 10px 12px; border-radius: 12px; margin-bottom: 10px; font-weight: 600; font-size: 14px; }
+  .cust-box.ok { background: #E8F5EC; color: #1E7B3A; }
+  .cust-box.change { background: var(--danger-soft); color: var(--danger); }
   .empty { text-align: center; color: var(--muted); padding: 48px 16px; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); }
   .more { margin-top: 12px; width: 100%; }
 
@@ -447,7 +452,7 @@
   const PAGE_LIMIT = 500;
   const TZ = 'Asia/Baghdad';
 
-  const ORDER_COLUMNS = 'id, created_at, customer_name, customer_phone, customer_address, cart_items, status, price, discount_amount, total_amount, delivery_cost, governorate, address_details, source, coupon_id, user_id, admin_note, status_updated_at, stock_restored, options';
+  const ORDER_COLUMNS = 'id, created_at, customer_name, customer_phone, customer_address, cart_items, status, price, discount_amount, total_amount, delivery_cost, governorate, address_details, source, coupon_id, user_id, admin_note, status_updated_at, stock_restored, options, customer_confirmed_at, customer_change_at';
 
   const STATUSES = [
     { key: 'قيد المراجعة', cls: 'st-review' },
@@ -836,6 +841,8 @@
           el('span', { text: addr.length > 40 ? addr.slice(0, 40) + '…' : addr }),
           el('span', { text: `${itemsCount(o)} قطعة` }),
           o.admin_note ? el('span', { text: '📝 ملاحظة' }) : null,
+          o.customer_confirmed_at ? el('span', { class: 'cust-ok', text: '✅ أكّد من التطبيق' }) : null,
+          o.customer_change_at && st === 'قيد المراجعة' ? el('span', { class: 'cust-change', text: '⚠️ يريد يعدّل/يلغي' }) : null,
         ),
       );
     }));
@@ -998,6 +1005,12 @@
 
         el('div', { class: 'd-sec' },
           el('h3', { text: 'الإجراءات' }),
+          // رد الزبون من التطبيق (نافذة تأكيد الطلب)
+          order.customer_change_at && st === 'قيد المراجعة'
+            ? el('div', { class: 'cust-box change', text: `⚠️ الزبون طلب تعديل أو إلغاء من التطبيق (${timeAgo(order.customer_change_at)})، اتصلوا بيه.` })
+            : order.customer_confirmed_at
+              ? el('div', { class: 'cust-box ok', text: `✅ الزبون أكّد الطلب من التطبيق (${timeAgo(order.customer_confirmed_at)})` })
+              : null,
           st === 'ملغي'
             ? el('div', { class: 'muted', text: order.stock_restored ? 'الطلب ملغي، والقطع رجعت للمخزون.' : 'الطلب ملغي.' })
             : el('div', { class: 'd-actions', style: 'margin-top:0' },
