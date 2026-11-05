@@ -214,6 +214,19 @@
     return { total, regular: unit * qty, free, packs };
   }
 
+  // أسعار القطعة حسب العدد (نفس private.unit_for_qty بالسيرفر)
+  const tierUnit = (base, t) => t.price != null ? Number(t.price) : Math.round(base * (100 - Number(t.pct)) / 100 / 250) * 250;
+  function unitFor(base, uts, q, mix) {
+    let best = null;
+    for (const t of uts) {
+      if (!!t.mix !== mix || t.min > q) continue;
+      const u = tierUnit(base, t);
+      if (!(u > 0 && u < base)) continue;
+      if (!best || t.min > best.min || (t.min === best.min && u < best.u)) best = { min: t.min, u };
+    }
+    return best ? best.u : base;
+  }
+
   function nextHint(unit, tiers, qty, maxQty) {
     if (!tiers.length) return null;
     const cur = quote(unit, tiers, qty);
@@ -248,12 +261,16 @@
       .map((t) => ({ qty: Number(t.qty), price: Number(t.price), free_delivery: t.free_delivery === true }))
       .filter((t) => Number.isInteger(t.qty) && t.qty > 1 && t.price > 0)
       .sort((a, b) => a.qty - b.qty);
-    const wholesale = p.is_wholesale === true;
+    const uts = tiers.length ? [] : (Array.isArray(p.unit_tiers) ? p.unit_tiers : [])
+      .map((t) => ({ min: Number(t.min), pct: t.pct, price: t.price, mix: t.mix === true }))
+      .filter((t) => Number.isInteger(t.min) && t.min > 1 && (t.price != null || t.pct != null));
+    const unitMode = uts.some((t) => !t.mix);
+    const wholesale = p.is_wholesale === true || unitMode;
     const minQty = Number(p.min_qty) > 1 ? Number(p.min_qty) : 1;
     const perOf = (t) => Math.ceil(t.price / t.qty);
 
     const st = { qty: minQty, mix: false, picked: [], all: false };
-    const maxQty = () => Math.min(stock, 20 * (colors.length ? (st.mix ? colors.length : Math.max(st.picked.length, 1)) : 1));
+    const maxQty = () => Math.min(stock, 100 * (colors.length && !st.mix ? Math.max(st.picked.length, 1) : 1));
     const lowQty = () => Math.max(minQty, st.mix ? 1 : Math.max(st.picked.length, 1));
 
     // --- الصور ---
@@ -288,18 +305,51 @@
     const dyn = el('div');
     function draw() {
       const qty = st.qty;
-      const q = quote(price, tiers, qty);
+      let q;
+      if (unitMode) {
+        const mq = st.mix ? qty : 0;
+        const u = unitFor(price, uts, qty, false);
+        const mu = Math.min(unitFor(price, uts, mq, true), u);
+        q = { total: (qty - mq) * u + mq * mu, regular: price * qty, free: false };
+      } else q = quote(price, tiers, qty);
       const parts = [];
 
-      if (tiers.length) {
+      let cells = [];
+      if (unitMode) {
+        const steps = new Map();
+        for (const t of uts.filter((t) => !t.mix)) {
+          const u = tierUnit(price, t);
+          if (u > 0 && u < price) steps.set(t.min, Math.min(steps.get(t.min) ?? u, u));
+        }
+        const mins = [...steps.keys()].sort((a, b) => a - b);
+        if (mins.length) {
+          cells.push([1, mins[0] - 1, price]);
+          mins.forEach((m, i) => cells.push([m, mins[i + 1] ? mins[i + 1] - 1 : null, steps.get(m)]));
+        }
+      } else if (tiers.length) {
         const usable = tiers.filter((t) => perOf(t) < price || t.free_delivery);
-        const cells = [[1, (usable[0] ? usable[0].qty : 2) - 1, price]];
-        usable.forEach((t, i) => cells.push([t.qty, usable[i + 1] ? usable[i + 1].qty - 1 : null, perOf(t)]));
+        if (usable.length) {
+          cells.push([1, usable[0].qty - 1, price]);
+          usable.forEach((t, i) => cells.push([t.qty, usable[i + 1] ? usable[i + 1].qty - 1 : null, perOf(t)]));
+        }
+      }
+      // منتجات بحد أدنى: الخانات الأقل منه ما تنعرض
+      cells = cells.filter(([a, b]) => b === null || b >= minQty).map(([a, b, v]) => [Math.max(a, minQty), b, v]);
+      let mixCell = null;
+      if (unitMode && colors.length) {
+        for (const t of uts.filter((t) => t.mix)) {
+          const u = tierUnit(price, t);
+          if (u > 0 && u < price && (!mixCell || t.min < mixCell[0])) mixCell = [t.min, u];
+        }
+      }
+      if (cells.length > 1) {
         const range = (a, b) => a === b ? piecesAr(a) : `${a}-${b} ${b <= 2 ? 'قطعة' : b <= 10 ? 'قطع' : 'قطعة'}`;
+        const mixOn = st.mix && mixCell && qty >= mixCell[0];
+        const all = cells.map(([a, b, v]) => ({ on: !mixOn && qty >= a && (b === null || qty <= b), v, label: b === null ? `${a}+ ${wholesale ? 'قطع' : 'قطعة'}` : range(a, b) }));
+        if (mixCell) all.push({ on: !!mixOn, v: mixCell[1], label: `مكس ${mixCell[0]}+` });
         parts.push(
           el('div', { class: 'tier-title', text: '✨ أسعار الكمية – كل ما تزيدين ينزل السعر' }),
-          el('div', { class: 'tierbar' }, cells.map(([a, b, v]) => el('div', { class: qty >= a && (b === null || qty <= b) ? 'on' : null },
-            el('b', null, num(v)), el('small', { text: b === null ? `${a}+ ${wholesale ? 'جملة' : 'قطعة'}` : range(a, b) })))),
+          el('div', { class: 'tierbar' }, all.map((c) => el('div', { class: c.on ? 'on' : null }, el('b', null, num(c.v)), el('small', { text: c.label })))),
           el('div', { class: 'caption', text: 'سعر القطعة بالدينار – ينحسب تلقائياً حسب العدد' }),
         );
       } else {
@@ -345,17 +395,23 @@
             el('button', { type: 'button', disabled: qty <= low, onclick: () => { st.qty--; draw(); } }, '−'),
             el('span', { text: qty }),
             el('button', { type: 'button', class: 'plus', disabled: qty >= max, onclick: () => { st.qty++; draw(); } }, '+'))));
-        const h = nextHint(price, tiers, qty, stock);
-        if (h) {
-          // متوسط سعر القطعة بعد الإضافة لازم يكون أرخص من الحالي، وإلا ما نعرض التلميح
-          const nq = quote(price, tiers, qty + h.missing);
-          const per = Math.ceil(nq.total / (qty + h.missing));
-          const isLast = h.tier.qty === tiers[tiers.length - 1].qty;
-          if (per < q.total / qty) {
-            parts.push(el('div', { class: 'hint' }, `✨ ضيفي ${piecesAr(h.missing)} وينزل سعر القطعة لـ `, num(per),
-              isLast && wholesale ? ' (سعر الجملة)' : ''));
-          } else if (nq.free && !q.free) {
-            parts.push(el('div', { class: 'hint', text: `✨ ضيفي ${piecesAr(h.missing)} وتاخذين توصيل مجاني` }));
+        const hintBox = (...kids) => parts.push(el('div', { class: 'hint' }, ...kids));
+        if (unitMode) {
+          if (st.mix && mixCell && qty < mixCell[0] && mixCell[0] <= stock) {
+            hintBox(`✨ ضيفي ${piecesAr(mixCell[0] - qty)} وينزل سعر القطعة لـ `, num(mixCell[1]), ' (سعر المكس)');
+          } else {
+            const cur = unitFor(price, uts, qty, false);
+            const next = cells.find(([a]) => a > qty && a <= stock && unitFor(price, uts, a, false) < cur);
+            if (next) hintBox(`✨ ضيفي ${piecesAr(next[0] - qty)} وينزل سعر القطعة لـ `, num(next[2]), next === cells[cells.length - 1] ? ' (سعر الجملة)' : '');
+          }
+        } else {
+          const h = nextHint(price, tiers, qty, stock);
+          if (h) {
+            const nq = quote(price, tiers, qty + h.missing);
+            const per = Math.ceil(nq.total / (qty + h.missing));
+            const isLast = h.tier.qty === tiers[tiers.length - 1].qty;
+            if (per < q.total / qty) hintBox(`✨ ضيفي ${piecesAr(h.missing)} وينزل سعر القطعة لـ `, num(per), isLast && p.is_wholesale === true ? ' (سعر الجملة)' : '');
+            else if (nq.free && !q.free) hintBox(`✨ ضيفي ${piecesAr(h.missing)} وتاخذين توصيل مجاني`);
           }
         }
       }
@@ -402,7 +458,7 @@
   async function load() {
     if (!Number.isInteger(id) || id <= 0) return renderMissing();
     try {
-      const cols = 'id,name,price,old_price,image_url,description,stock,bulk_tiers,colors,sales_count,rating,is_wholesale,min_qty,categories(name)';
+      const cols = 'id,name,price,old_price,image_url,description,stock,bulk_tiers,unit_tiers,colors,sales_count,rating,is_wholesale,min_qty,categories(name)';
       const res = await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=${cols}`, {
         headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
       });
