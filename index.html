@@ -1172,7 +1172,7 @@
   // ================= المنتجات والمقاطع =================
   const BUCKET = 'hijabat';
   const MAX_VIDEO_MB = 50;
-  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at, bulk_tiers, offer_group, is_wholesale, min_qty';
+  const PRODUCT_COLS = 'id, name, price, old_price, stock, product_cost, category_id, colors, description, is_offer, offer_ends_at, image_url, sales_count, created_at, bulk_tiers, unit_tiers, offer_group, is_wholesale, min_qty';
   const adm = {
     section: 'orders',
     categories: [],
@@ -1312,7 +1312,7 @@
   function openProductEditor(product) {
     const dlg = $('product-dialog');
     const isNew = !product;
-    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [], bulk_tiers: [], offer_group: null, is_wholesale: false, min_qty: null };
+    const p = product || { name: '', price: '', old_price: '', stock: 1, product_cost: '', category_id: adm.cat || (adm.categories[0] || {}).id, colors: [], description: '', is_offer: false, offer_ends_at: null, image_url: [], bulk_tiers: [], unit_tiers: null, offer_group: null, is_wholesale: false, min_qty: null };
     // كل صورة: { url } موجودة أو { file, preview } جديدة
     let images = (p.image_url || []).map((url) => ({ url }));
 
@@ -1415,6 +1415,54 @@
     f.price.addEventListener('change', renderTiers);
     renderTiers();
 
+    // ---- أسعار الجملة (unit_tiers): كل القطع بسعر الدرجة إذا العدد وصلها. فارغ = الخصم الافتراضي.
+    const UNIT_DEFAULT = [{ min: 6, pct: 27.5 }, { min: 12, pct: 27.5 }, { min: 12, pct: 30, mix: true }];
+    const srcUnit = Array.isArray(p.unit_tiers) ? p.unit_tiers : (p.unit_tiers == null ? UNIT_DEFAULT : []);
+    const unitSlots = [
+      { key: '6', label: '6-11 قطعة', min: 6, mix: false },
+      { key: '12', label: '12+ قطعة', min: 12, mix: false },
+      { key: 'mix', label: 'مكس 12+', min: 12, mix: true },
+    ].map((s) => {
+      const t = srcUnit.find((x) => Number(x.min) === s.min && !!x.mix === s.mix);
+      return { ...s, pct: t ? t.pct ?? null : null, price: t && t.price != null ? t.price : '', on: !!t };
+    });
+    const unitOff = el('input', { type: 'checkbox' });
+    unitOff.checked = Array.isArray(p.unit_tiers) && p.unit_tiers.length === 0;
+    const tierUnit = (base, pct) => Math.round(base * (100 - pct) / 100 / 250) * 250;
+    const unitBox = el('div', { class: 'tiers' });
+    const renderUnit = () => {
+      const base = Number(f.price.value) || 0;
+      unitBox.replaceChildren(
+        el('label', { class: 'check' }, unitOff, 'بدون أسعار جملة لهذا المنتج'),
+        ...(unitOff.checked ? [] : unitSlots.map((s) => {
+          const def = s.pct != null ? s.pct : (UNIT_DEFAULT.find((x) => x.min === s.min && !!x.mix === s.mix) || {}).pct;
+          const input = el('input', { class: 'field', type: 'number', min: 0, step: 250, inputmode: 'numeric', dir: 'ltr',
+            placeholder: base ? money(tierUnit(base, def)) : 'سعر القطعة' });
+          input.value = s.price;
+          input.addEventListener('input', () => { s.price = input.value; });
+          return el('div', { class: 'tier-row' }, el('div', { class: 'tier-fields' },
+            el('span', { class: 'muted', text: s.label }), input, el('span', { class: 'muted', text: `للقطعة (فارغ = خصم ${def}%)` })));
+        })),
+      );
+    };
+    unitOff.addEventListener('change', renderUnit);
+    f.price.addEventListener('change', renderUnit);
+    renderUnit();
+
+    function readUnitTiers(unitPrice) {
+      if (unitOff.checked) return [];
+      const out = [];
+      for (const s of unitSlots) {
+        const def = s.pct != null ? s.pct : (UNIT_DEFAULT.find((x) => x.min === s.min && !!x.mix === s.mix) || {}).pct;
+        const base = { min: s.min, ...(s.mix ? { mix: true } : {}) };
+        if (s.price === '' || s.price == null) { out.push({ ...base, pct: def }); continue; }
+        const v = Number(s.price);
+        if (!(v > 0) || v >= unitPrice) return `سعر ${s.label} لازم يكون أقل من سعر القطعة (${money(unitPrice)} د.ع)`;
+        out.push({ ...base, price: v });
+      }
+      return out;
+    }
+
     // يرجع مصفوفة jsonb أو رسالة خطأ
     function readTiers(unitPrice) {
       const out = [];
@@ -1453,6 +1501,8 @@
       if (!images.length) { err.textContent = 'أضف صورة وحدة على الأقل'; return; }
       const bulkTiers = readTiers(price);
       if (typeof bulkTiers === 'string') { err.textContent = bulkTiers; return; }
+      const unitTiers = readUnitTiers(price);
+      if (typeof unitTiers === 'string') { err.textContent = unitTiers; return; }
       const offerGroup = f.group.value.trim() || null;
       const minQty = f.minQty.value === '' ? null : Number(f.minQty.value);
       if (minQty !== null && (!Number.isInteger(minQty) || minQty < 2 || minQty > 1000)) { err.textContent = 'أقل كمية لازم رقم صحيح من 2 إلى 1000، أو اتركها فارغة'; return; }
@@ -1494,6 +1544,7 @@
           offer_ends_at: f.offer.checked && f.ends.value ? new Date(f.ends.value).toISOString() : null,
           image_url: urls,
           bulk_tiers: bulkTiers,
+          unit_tiers: unitTiers,
           offer_group: offerGroup,
           is_wholesale: f.wholesale.checked,
           min_qty: minQty,
@@ -1531,6 +1582,7 @@
           field('السعر (د.ع) *', f.price),
           field('السعر قبل الخصم', f.oldPrice, { help: 'اتركه فارغ إذا ماكو خصم.' }),
           field('الألوان', f.colors, { full: true, help: 'افصل بينها بفاصلة. إذا كتبت ألوان، الزبون لازم يختار واحد قبل الإضافة للسلة.' }),
+          field('أسعار الجملة (سعر القطعة حسب العدد)', unitBox, { full: true, help: 'إذا مجموع القطع (كل الألوان) وصل 6، كل القطع تنحسب بسعر 6-11، وإذا وصل 12 بسعر 12+. "مكس" للزبونة الي تختار "مكس ألوان" (إنتو تختارون الألوان) إذا طلبت 12 أو أكثر. إذا المنتج بيه "عروض كمية" (باقات)، الباقات هي الي تنحسب بداله.' }),
           field('عروض الكمية', tiersBox, { full: true, help: 'مثال: 3 قطع بـ 15,000. تنحسب باقات: 7 قطع مع عرض 3 = باقتين + قطعة بالسعر العادي. الكمية تنجمع عبر كل الألوان، وإذا وصل عرض بيه توصيل مجاني يصير التوصيل مجاني على الطلب كله.' }),
           el('div', null, el('label', { class: 'check' }, f.wholesale, 'منتج جملة (اختيار ألوان متعددة)'),
             el('div', { class: 'help', text: 'الزبون يختار أكثر من لون مرة وحدة، ولكل لون عدد.' })),
