@@ -158,8 +158,9 @@
   dialog p { margin: 0 0 16px; color: var(--muted); }
 
   /* ---------- أقسام اللوحة ---------- */
-  .section-nav { max-width: 1240px; margin: 0 auto; padding: 0 16px; display: flex; gap: 4px; }
-  .section-nav button { border: 0; background: transparent; padding: 10px 14px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; }
+  .section-nav { max-width: 1240px; margin: 0 auto; padding: 0 16px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .section-nav::-webkit-scrollbar { display: none; }
+  .section-nav button { border: 0; background: transparent; padding: 10px 14px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
   .section-nav button[aria-pressed="true"] { color: var(--brand-dark); border-bottom-color: var(--brand); }
   .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
   .toolbar .grow { flex: 1 1 220px; }
@@ -208,6 +209,16 @@
   .look-row { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; }
   .look-card { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
   .story-thumb { width: 72px; height: 128px; object-fit: cover; border-radius: 10px; background: #f0ece8; }
+  .inf-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; display: grid; gap: 10px; }
+  .inf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .inf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+  .inf-stat { background: var(--bg); border-radius: 10px; padding: 8px 10px; }
+  .inf-stat .k { font-size: 12px; color: var(--muted); }
+  .inf-stat .v { font-weight: 700; font-size: 17px; }
+  .inf-stat.due { background: var(--brand-soft); }
+  .inf-stat.due .v { color: var(--brand-dark); }
+  .inf-pay { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .inf-pay .field { width: 150px; }
   .story-preview { width: 180px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 14px; background: #f0ece8; }
   .look-card img { width: 72px; height: 90px; object-fit: cover; border-radius: 10px; }
   .new-clip video { width: 180px; max-width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 12px; background: #000; }
@@ -267,7 +278,7 @@
     #toasts { bottom: calc(86px + env(safe-area-inset-bottom)); }
     .login-card { padding: 24px 18px; }
     .section-nav { padding: 0 8px; }
-    .section-nav button { flex: 1; padding: 10px 6px; }
+    .section-nav button { flex: 1 0 auto; padding: 10px 8px; }
     .form-grid { grid-template-columns: minmax(0, 1fr); }
     dialog.sheet { width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0; border-radius: 0; }
     .clip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -349,6 +360,7 @@
       <button type="button" data-section="looks" aria-pressed="false">الاطلالة</button>
       <button type="button" data-section="stories" aria-pressed="false">الستوري</button>
       <button type="button" data-section="splash" aria-pressed="false">إعلان الافتتاح</button>
+      <button type="button" data-section="influencers" aria-pressed="false">المؤثرين</button>
     </nav>
   </header>
 
@@ -423,6 +435,11 @@
   <main class="wrap hidden" id="sec-push">
     <div class="new-clip" id="push-form"></div>
     <div id="push-log"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-influencers">
+    <div class="new-clip" id="inf-editor"></div>
+    <div id="inf-list"></div>
   </main>
 </div>
 
@@ -1170,7 +1187,7 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
@@ -1179,6 +1196,7 @@
     if (name === 'looks') openLooks();
     if (name === 'stories') openStories();
     if (name === 'splash') openSplash();
+    if (name === 'influencers') openInfluencers();
     window.scrollTo(0, 0);
   }
 
@@ -2368,6 +2386,154 @@
   $('prod-cat').addEventListener('change', (ev) => { adm.cat = Number(ev.target.value); renderProducts(); });
   $('prod-stock').addEventListener('change', (ev) => { adm.stock = ev.target.value; renderProducts(); });
 
+  // ---------- المؤثرين ----------
+  // كل مؤثر إله كوبون (خصم لأول طلب) وعمولة على كل أول طلب يوصل بكوده (تنحسب لما الطلب يصير "مكتمل").
+  // الأرقام من public.admin_influencer_report، والمؤثر يشوف أرقامه بصفحة inf.html برابط سري.
+  const SITE_URL = 'https://teaizteaiz46-blip.github.io/Modo-orders/';
+  adm.influencers = [];
+
+  function openInfluencers() {
+    if (!$('inf-editor').childElementCount) renderInfluencerEditor(null);
+    loadInfluencers();
+  }
+
+  async function loadInfluencers() {
+    $('inf-list').replaceChildren(el('div', { class: 'empty', text: 'جاري التحميل...' }));
+    const { data, error } = await db.rpc('admin_influencer_report');
+    if (error) { $('inf-list').replaceChildren(el('div', { class: 'empty error', text: friendlyError(error) })); return; }
+    adm.influencers = data || [];
+    renderInfluencers();
+  }
+
+  const infLinks = (inf) => ({
+    dashboard: `${SITE_URL}inf.html?t=${inf.token}`,
+    ad: `${SITE_URL}app.html?utm_source=influencer&utm_campaign=inf_${String(inf.code).toLowerCase()}`,
+  });
+
+  const infStat = (label, value, cls = '') =>
+    el('div', { class: 'inf-stat ' + cls }, el('div', { class: 'k', text: label }), el('div', { class: 'v num', text: value }));
+
+  function renderInfluencers() {
+    const list = adm.influencers;
+    if (!list.length) {
+      $('inf-list').replaceChildren(el('div', { class: 'empty', text: 'ماكو مؤثرين لحد هسه' }));
+      return;
+    }
+    const due = list.reduce((s, i) => s + (Number(i.earned) - Number(i.paid)), 0);
+    $('inf-list').replaceChildren(
+      el('h3', { text: 'المؤثرين', style: 'margin:6px 0 4px' }),
+      el('div', { class: 'help', style: 'margin-bottom:10px', text: `الباقي لكل المؤثرين هسه: ${money(due)} د.ع. العمولة تنحسب لما الطلب يصير "مكتمل"، وبس إذا كان أول طلب للزبون ومو رقم المؤثر نفسه.` }),
+      ...list.map(renderInfluencerCard),
+    );
+  }
+
+  function renderInfluencerCard(inf) {
+    const links = infLinks(inf);
+    const balance = Number(inf.earned) - Number(inf.paid);
+    const amount = el('input', { class: 'field', type: 'number', min: 1, step: 500, placeholder: 'المبلغ', value: balance > 0 ? balance : '' });
+    const payBtn = el('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'تسجيل');
+    payBtn.addEventListener('click', async () => {
+      const v = Math.round(Number(amount.value));
+      if (!(v > 0)) { toast('اكتب المبلغ', true); return; }
+      const ok = await confirmDialog(`تسجيل دفعة ${money(v)} د.ع؟`, `للمؤثر ${inf.name}، وتنطرح من الباقي إله.`, 'تسجيل');
+      if (!ok) return;
+      payBtn.disabled = true;
+      const { error } = await db.from('influencer_payouts').insert({ influencer_id: inf.id, amount: v });
+      payBtn.disabled = false;
+      if (error) { toast(friendlyError(error), true); return; }
+      toast('انسجلت الدفعة ✅');
+      loadInfluencers();
+    });
+    const payBox = el('div', { class: 'inf-pay hidden' }, amount, payBtn);
+    return el('div', { class: 'inf-card' },
+      el('div', { class: 'inf-head' },
+        el('span', { class: 'prod-name', text: inf.name }),
+        el('span', { class: 'badge orange num', text: inf.code }),
+        el('span', { class: 'badge ' + (inf.active ? 'green' : 'red'), text: inf.active ? 'فعّال' : 'موقوف' }),
+        el('span', { class: 'spacer' }),
+        el('span', { class: 'help', style: 'margin:0', text: `خصم الزبون ${money(inf.discount)} · العمولة ${money(inf.commission)} د.ع` }),
+      ),
+      el('div', { class: 'inf-stats' },
+        infStat('زيارات الرابط', money(inf.visits)),
+        infStat('طلبات بكوده', money(inf.orders)),
+        infStat('واصلة وتنحسب', money(inf.counted)),
+        infStat('بالطريق', money(inf.in_progress)),
+        infStat('ملغية', money(inf.cancelled)),
+        infStat('العمولة الكلية', money(inf.earned)),
+        infStat('المدفوع', money(inf.paid)),
+        infStat('الباقي إله', money(balance), 'due'),
+      ),
+      inf.note ? el('div', { class: 'help', style: 'margin:0', text: '📝 ' + inf.note }) : null,
+      el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
+        el('button', { class: 'btn btn-sm', type: 'button', onclick: () => copyText(links.ad, 'انتسخ رابط الإعلان') }, 'نسخ رابط الإعلان'),
+        el('button', { class: 'btn btn-sm', type: 'button', onclick: () => copyText(links.dashboard, 'انتسخ رابط صفحة المؤثر') }, 'نسخ رابط صفحته'),
+        el('button', { class: 'btn btn-sm', type: 'button', onclick: () => payBox.classList.toggle('hidden') }, 'تسجيل دفعة'),
+        el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { renderInfluencerEditor(inf); window.scrollTo({ top: 0, behavior: 'smooth' }); } }, 'تعديل'),
+      ),
+      payBox,
+    );
+  }
+
+  function renderInfluencerEditor(inf) {
+    const box = $('inf-editor');
+    const name = el('input', { class: 'field', maxlength: 60, placeholder: 'مثال: زينب', value: inf ? inf.name : '' });
+    const code = el('input', { class: 'field num', maxlength: 20, dir: 'ltr', placeholder: 'مثال: ZAINAB', style: 'text-transform:uppercase', value: inf ? inf.code : '' });
+    const discount = el('input', { class: 'field', type: 'number', min: 1500, step: 500, value: inf ? inf.discount : 2000 });
+    const commission = el('input', { class: 'field', type: 'number', min: 0, step: 250, value: inf ? inf.commission : 500 });
+    const phone = el('input', { class: 'field num', type: 'tel', dir: 'ltr', placeholder: '07xxxxxxxxx', value: inf ? inf.phone || '' : '' });
+    const note = el('input', { class: 'field', maxlength: 200, placeholder: 'مثال: 50 ألف على ستوريين', value: inf ? inf.note || '' : '' });
+    const active = el('input', { type: 'checkbox' });
+    active.checked = inf ? inf.active : true;
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, inf ? 'حفظ التعديل' : 'إضافة المؤثر');
+
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      const c = code.value.trim().toUpperCase();
+      if (!name.value.trim()) { err.textContent = 'اكتب اسم المؤثر'; return; }
+      if (!/^[A-Z0-9]{3,20}$/.test(c)) { err.textContent = 'الكود من 3 لـ 20 حرف إنكليزي أو رقم، بدون فراغات'; return; }
+      // لازم أكثر من كود الترحيب (MODONEW = 1,000) حتى المتابعين يحسون بقيمة كود المؤثر
+      if (!(Number(discount.value) > 1000)) { err.textContent = 'خصم المؤثر لازم أكثر من خصم الترحيب (1,000 د.ع)'; return; }
+      save.disabled = true;
+      const { error } = await db.rpc('admin_save_influencer', {
+        p_id: inf ? inf.id : null,
+        p_name: name.value.trim(),
+        p_code: c,
+        p_discount: Math.round(Number(discount.value) || 0),
+        p_commission: Math.round(Number(commission.value) || 0),
+        p_phone: phone.value.trim() || null,
+        p_active: active.checked,
+        p_note: note.value.trim() || null,
+      });
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      toast(inf ? 'انحفظ التعديل ✅' : 'انضاف المؤثر ✅');
+      renderInfluencerEditor(null);
+      loadInfluencers();
+    });
+
+    box.replaceChildren(
+      el('h3', { text: inf ? 'تعديل ' + inf.name : 'مؤثر جديد', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'الزبون يكتب الكود بخانة كود الخصم بالتطبيق، ويشتغل لأول طلب إله بس. العمولة تنحسب لما الطلب يصير "مكتمل"، وتغييرها يمشي على الطلبات الجاية.' }),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'اسم المؤثر' }), name),
+        el('div', null, el('label', { class: 'lbl', text: 'الكود' }), code),
+        el('div', null, el('label', { class: 'lbl', text: 'خصم الزبون (د.ع)' }), discount,
+          el('div', { class: 'help', text: 'أكثر من كود الترحيب MODONEW (1,000)، حتى المتابعين يحسون كود المؤثر إله قيمة.' })),
+        el('div', null, el('label', { class: 'lbl', text: 'عمولة المؤثر لكل طلب (د.ع)' }), commission),
+        el('div', null, el('label', { class: 'lbl', text: 'رقم المؤثر (اختياري)' }), phone,
+          el('div', { class: 'help', text: 'طلباته هو بكوده ما تنحسب.' })),
+        el('div', null, el('label', { class: 'lbl', text: 'ملاحظة (الاتفاق)' }), note),
+        el('label', { class: 'check full' }, active, 'فعّال (إذا انطفى، الكود يوقف بالتطبيق)'),
+      ),
+      err,
+      el('div', { style: 'display:flex;gap:8px' },
+        save,
+        inf ? el('button', { class: 'btn', type: 'button', onclick: () => renderInfluencerEditor(null) }, 'إلغاء') : null,
+      ),
+    );
+  }
+
   // ================= الأحداث =================
   $('login-form').addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -2392,6 +2558,8 @@
     $('splash-editor').replaceChildren();
     $('look-editor').replaceChildren();
     $('story-editor').replaceChildren();
+    $('inf-editor').replaceChildren();
+    adm.influencers = [];
     showSection('orders');
     closeDetail();
     showLogin();
