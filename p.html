@@ -9,55 +9,79 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23FF773D'/><text x='32' y='43' font-size='30' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>M</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #F6F5F3; --surface: #FFFFFF; --ink: #1E1B18; --muted: #7C746D; --line: #ECE7E2;
-    --brand: #FF773D; --brand-dark: #E2581C; --brand-soft: #FFEEE6; --green: #1E7B3A; --green-soft: #E5F5EA;
-    --font: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #151311; --surface: #1F1C1A; --ink: #F3EFEB; --muted: #A69D95; --line: #34302C;
-      --brand-soft: #3A2419; --green: #6FD08F; --green-soft: #173222;
-    }
-  }
-  * { box-sizing: border-box; }
+  :root { --brand: #FF773D; --ink: #1E1B18; --pink: #C2185B; --green: #2E7D32; --font: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; }
-  body { font-family: var(--font); background: var(--bg); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px 40px; }
-  header { display: flex; align-items: center; gap: 10px; padding: 14px 0; }
-  .logo { width: 36px; height: 36px; border-radius: 10px; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 700; }
-  header b { font-size: 18px; letter-spacing: .5px; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
-  .gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: var(--line); aspect-ratio: 1; }
+  body { font-family: var(--font); background: #fff; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 520px; margin: 0 auto; padding-bottom: 28px; }
+  .num { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+  .hero { position: relative; aspect-ratio: 390 / 400; background: #f4f1ee; }
+  .gallery { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .gallery::-webkit-scrollbar { display: none; }
   .gallery img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: center; }
-  .body { padding: 16px; }
-  h1 { font-size: 20px; margin: 0 0 8px; line-height: 1.45; }
-  .price { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .price .now { font-size: 24px; font-weight: 700; color: var(--brand-dark); }
-  .price .old { color: var(--muted); text-decoration: line-through; }
-  .num { direction: ltr; unicode-bidi: isolate; display: inline-block; }
-  .tiers { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft); }
-  .tiers div { font-weight: 600; }
-  .stock { margin-top: 10px; font-weight: 600; font-size: 14px; }
-  .stock.in { color: var(--green); }
-  .stock.out { color: #B42318; }
-  .desc { margin-top: 14px; color: var(--muted); white-space: pre-line; }
-  .actions { display: grid; gap: 10px; margin-top: 18px; }
-  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border-radius: 14px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
-  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  .stores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 14px; }
-  .state { padding: 60px 16px; text-align: center; color: var(--muted); }
+  .circle { position: absolute; top: 10px; width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--ink); text-decoration: none; cursor: pointer; font-family: inherit; }
+  .counter { position: absolute; bottom: 10px; left: 12px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; font-weight: 800; border-radius: 10px; padding: 2px 8px; direction: ltr; }
+  .thumbs { display: flex; gap: 8px; padding: 8px 14px; overflow-x: auto; scrollbar-width: none; }
+  .thumbs img { flex: none; width: 52px; height: 52px; border-radius: 10px; object-fit: cover; border: 2px solid transparent; cursor: pointer; }
+  .thumbs img.on { border-color: var(--brand); }
+  .body { padding: 4px 14px 0; }
+  .cat { font-size: 12px; color: #888; }
+  h1 { font-size: 21px; font-weight: 900; line-height: 1.3; margin: 0; }
+  .stats { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #666; margin-top: 2px; }
+  .tier-title { margin-top: 12px; font-size: 13px; font-weight: 900; color: var(--pink); }
+  .tierbar { display: flex; gap: 4px; margin-top: 6px; background: linear-gradient(90deg, #ff8a3d, var(--brand)); border-radius: 16px; padding: 5px; }
+  .tierbar div { flex: 1; text-align: center; padding: 8px 2px; border-radius: 12px; color: #fff; transition: .2s; }
+  .tierbar div.on { background: #fff; color: var(--brand); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  .tierbar b { display: block; font-size: 17px; font-weight: 900; }
+  .tierbar small { display: block; font-size: 10.5px; font-weight: 700; opacity: .9; }
+  .caption { font-size: 11px; color: #888; margin-top: 4px; }
+  .price { display: flex; gap: 8px; align-items: baseline; margin-top: 12px; }
+  .price .now { font-size: 22px; font-weight: 900; color: var(--brand); }
+  .price .old { color: #aaa; text-decoration: line-through; }
+  .toggle { display: flex; margin-top: 12px; background: #f6f3f1; border-radius: 14px; padding: 4px; }
+  .toggle button { flex: 1; text-align: center; border: 0; background: transparent; border-radius: 11px; padding: 6px; font-family: inherit; cursor: pointer; }
+  .toggle button.on { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .toggle b { display: block; font-size: 14px; color: #666; }
+  .toggle button.on b { color: var(--ink); }
+  .toggle small { font-size: 10.5px; color: #888; }
+  .pick-head { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .pick-head b { font-size: 14px; }
+  .pick-head span { font-size: 12px; color: #888; }
+  .colors { margin-top: 4px; }
+  .chip { display: inline-block; min-width: 38px; text-align: center; border: 1.5px solid #eadfd8; background: #fff; border-radius: 10px; padding: 3px 8px; margin: 3px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--ink); }
+  .chip.on { border-color: var(--brand); background: #fff1e8; font-weight: 900; }
+  .more { font-size: 12px; color: var(--brand); font-weight: 800; margin-right: 6px; cursor: pointer; background: none; border: 0; font-family: inherit; }
+  .total { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; background: #fafafa; border-radius: 14px; padding: 10px 12px; }
+  .total .lbl { font-size: 12px; color: #888; }
+  .total .sum { font-size: 24px; font-weight: 900; color: var(--brand); line-height: 1.3; }
+  .total .sum small { font-size: 13px; }
+  .total .save { font-size: 12px; color: var(--green); font-weight: 800; }
+  .stepper { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 4px 10px; font-size: 18px; font-weight: 900; }
+  .stepper button { border: 0; background: none; font-size: 18px; font-weight: 900; cursor: pointer; font-family: inherit; color: var(--ink); padding: 0 4px; }
+  .stepper button.plus { color: var(--brand); }
+  .stepper button:disabled { color: #ccc; }
+  .hint { margin-top: 8px; background: #fff4ec; border-radius: 12px; padding: 8px 12px; font-size: 12.5px; font-weight: 800; color: #b4501a; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn { flex: 1; text-align: center; border-radius: 24px; padding: 12px; font-weight: 900; font-size: 15px; font-family: inherit; cursor: pointer; border: 1.5px solid var(--brand); background: #fff; color: var(--brand); text-decoration: none; }
+  .btn.primary { background: var(--brand); color: #fff; }
+  .btn:disabled { border-color: #ccc; background: #ccc; color: #fff; }
+  .trust { display: flex; justify-content: space-around; margin: 14px 0 22px; font-size: 11px; color: #666; text-align: center; }
+  .desc-title { font-size: 15px; font-weight: 800; }
+  .desc { font-size: 14px; color: #555; line-height: 1.6; white-space: pre-line; margin-top: 4px; }
+  .stores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+  .stores a { text-align: center; border: 1px solid #eee; border-radius: 14px; padding: 10px; font-weight: 800; font-size: 14px; color: var(--ink); text-decoration: none; }
+  .state { padding: 60px 16px; text-align: center; color: #888; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e1b18; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; opacity: 0; transition: .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header><div class="logo" aria-hidden="true">M</div><b>MODO</b></header>
   <main id="app"><div class="state">جاري التحميل...</div></main>
 </div>
+<div class="toast" id="toast"></div>
 <script>
 (() => {
   'use strict';
@@ -75,7 +99,6 @@
   const isAndroid = /Android/i.test(ua);
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
   const money = (v) => Math.round(Number(v) || 0).toLocaleString('en-US');
-  const pieces = (n) => n === 2 ? 'قطعتين' : `${n} قطع`;
 
   // ---- تسجيل الزيارات بجدول page_visits (insert فقط) ----
   // ما يأخر فتح الصفحة ولا الانتقال، وأي خطأ يفشل بصمت.
@@ -160,9 +183,57 @@
 
   function storeButtons() {
     return el('div', { class: 'stores' },
-      el('a', { class: 'btn', href: PLAY_URL, rel: 'noopener', onclick: () => track('click_play') }, 'Google Play'),
-      el('a', { class: 'btn', href: APP_STORE_URL, rel: 'noopener', onclick: () => track('click_appstore') }, 'App Store'),
+      el('a', { href: PLAY_URL, rel: 'noopener', onclick: () => track('click_play') }, 'Google Play'),
+      el('a', { href: APP_STORE_URL, rel: 'noopener', onclick: () => track('click_appstore') }, 'App Store'),
     );
+  }
+
+  const piecesAr = (n) => n === 1 ? 'قطعة وحدة' : n === 2 ? 'قطعتين' : n <= 10 ? `${n} قطع` : `${n} قطعة`;
+  const num = (v) => el('span', { class: 'num', text: money(v) });
+
+  function toast(text) {
+    const t = document.getElementById('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // نفس حساب التطبيق: الباقات من الأكبر للأصغر، والباقي بسعر القطعة
+  function quote(unit, tiers, qty) {
+    let rem = qty, total = 0, free = false;
+    const packs = new Map();
+    for (const t of [...tiers].reverse()) {
+      if (rem >= t.qty) {
+        const n = Math.floor(rem / t.qty);
+        total += n * t.price; rem %= t.qty; packs.set(t, n);
+        if (t.free_delivery === true) free = true;
+      }
+    }
+    total += rem * unit;
+    return { total, regular: unit * qty, free, packs };
+  }
+
+  function nextHint(unit, tiers, qty, maxQty) {
+    if (!tiers.length) return null;
+    const cur = quote(unit, tiers, qty);
+    for (let n = 1; n <= tiers[tiers.length - 1].qty; n++) {
+      if (qty + n > maxQty) return null;
+      const next = quote(unit, tiers, qty + n);
+      const cheaper = next.total < cur.total + n * unit;
+      const freeNow = next.free && !cur.free;
+      if (!cheaper && !freeNow) continue;
+      for (const t of [...tiers].reverse()) {
+        if ((next.packs.get(t) || 0) > (cur.packs.get(t) || 0)) return { missing: n, tier: t };
+      }
+    }
+    return null;
+  }
+
+  function optionsLabel(opts) {
+    if (opts.length < 2) return '';
+    if (opts.every((o) => o.startsWith('موديل'))) return `${opts.length} موديلات`;
+    return `${opts.length} لون`;
   }
 
   function render(p) {
@@ -170,48 +241,168 @@
     const images = (Array.isArray(p.image_url) ? p.image_url : []).filter(Boolean);
     const price = Number(p.price) || 0;
     const old = Number(p.old_price) || 0;
+    const stock = Number(p.stock) || 0;
+    const inStock = stock > 0;
+    const colors = (Array.isArray(p.colors) ? p.colors : []).map((c) => String(c).trim()).filter(Boolean);
     const tiers = (Array.isArray(p.bulk_tiers) ? p.bulk_tiers : [])
-      .filter((t) => Number.isInteger(t.qty) && t.qty > 1 && Number(t.price) > 0)
+      .map((t) => ({ qty: Number(t.qty), price: Number(t.price), free_delivery: t.free_delivery === true }))
+      .filter((t) => Number.isInteger(t.qty) && t.qty > 1 && t.price > 0)
       .sort((a, b) => a.qty - b.qty);
-    const inStock = Number(p.stock) > 0;
+    const wholesale = p.is_wholesale === true;
+    const minQty = Number(p.min_qty) > 1 ? Number(p.min_qty) : 1;
+    const perOf = (t) => Math.ceil(t.price / t.qty);
 
-    app.replaceChildren(el('div', { class: 'card' },
-      images.length
-        ? el('div', { class: 'gallery' }, images.map((src, i) => el('img', { src, alt: i === 0 ? p.name : '', loading: i ? 'lazy' : 'eager' })))
-        : null,
+    const st = { qty: minQty, mix: false, picked: [], all: false };
+    const maxQty = () => Math.min(stock, 20 * (colors.length ? (st.mix ? colors.length : Math.max(st.picked.length, 1)) : 1));
+    const lowQty = () => Math.max(minQty, st.mix ? 1 : Math.max(st.picked.length, 1));
+
+    // --- الصور ---
+    const gallery = el('div', { class: 'gallery' },
+      images.map((src, i) => el('img', { src, alt: i === 0 ? p.name : '', loading: i ? 'lazy' : 'eager' })));
+    const counter = images.length > 1 ? el('div', { class: 'counter', text: `1 / ${images.length}` }) : null;
+    const thumbs = images.length > 1
+      ? el('div', { class: 'thumbs' }, images.map((src, i) => el('img', {
+          src, alt: '', loading: 'lazy', class: i === 0 ? 'on' : null,
+          onclick: () => gallery.scrollTo({ left: -i * gallery.clientWidth * (document.dir === 'rtl' ? 1 : -1), behavior: 'smooth' }),
+        })))
+      : null;
+    gallery.addEventListener('scroll', () => {
+      const i = Math.round(Math.abs(gallery.scrollLeft) / gallery.clientWidth);
+      if (counter) counter.textContent = `${i + 1} / ${images.length}`;
+      if (thumbs) [...thumbs.children].forEach((t, j) => t.classList.toggle('on', j === i));
+    }, { passive: true });
+
+    const share = () => {
+      const url = location.href;
+      if (navigator.share) navigator.share({ title: p.name, url }).catch(() => {});
+      else navigator.clipboard?.writeText(url).then(() => toast('انخسخ رابط المنتج'));
+    };
+    const hero = el('div', { class: 'hero' },
+      images.length ? gallery : null,
+      el('a', { class: 'circle', style: 'right:12px', href: 'app.html', 'aria-label': 'MODO' }, '›'),
+      el('button', { class: 'circle', style: 'left:12px', type: 'button', onclick: share, 'aria-label': 'مشاركة' }, '↗'),
+      counter,
+    );
+
+    // --- الأجزاء المتغيرة ---
+    const dyn = el('div');
+    function draw() {
+      const qty = st.qty;
+      const q = quote(price, tiers, qty);
+      const parts = [];
+
+      if (tiers.length) {
+        const usable = tiers.filter((t) => perOf(t) < price || t.free_delivery);
+        const cells = [[1, (usable[0] ? usable[0].qty : 2) - 1, price]];
+        usable.forEach((t, i) => cells.push([t.qty, usable[i + 1] ? usable[i + 1].qty - 1 : null, perOf(t)]));
+        const range = (a, b) => a === b ? piecesAr(a) : `${a}-${b} ${b <= 2 ? 'قطعة' : b <= 10 ? 'قطع' : 'قطعة'}`;
+        parts.push(
+          el('div', { class: 'tier-title', text: '✨ أسعار الكمية – كل ما تزيدين ينزل السعر' }),
+          el('div', { class: 'tierbar' }, cells.map(([a, b, v]) => el('div', { class: qty >= a && (b === null || qty <= b) ? 'on' : null },
+            el('b', null, num(v)), el('small', { text: b === null ? `${a}+ ${wholesale ? 'جملة' : 'قطعة'}` : range(a, b) })))),
+          el('div', { class: 'caption', text: 'سعر القطعة بالدينار – ينحسب تلقائياً حسب العدد' }),
+        );
+      } else {
+        parts.push(el('div', { class: 'price' },
+          el('span', { class: 'now' }, num(price), ' د.ع'),
+          old > price ? el('span', { class: 'old' }, num(old)) : null));
+      }
+
+      if (colors.length && inStock) {
+        const seg = (title, sub, on, fn) => el('button', { type: 'button', class: on ? 'on' : null, onclick: fn },
+          el('b', { text: title }), el('small', { text: sub }));
+        parts.push(el('div', { class: 'toggle' },
+          seg('أختار ألواني', 'أكتب أرقام الألوان', !st.mix, () => { st.mix = false; st.qty = Math.max(st.qty, lowQty()); draw(); }),
+          seg('مكس ألوان 🎁', 'تشكيلة منوعة نختارها إلج', st.mix, () => { st.mix = true; draw(); })));
+        if (!st.mix) {
+          const shown = st.all || colors.length <= 18 ? colors : colors.slice(0, 18);
+          parts.push(
+            el('div', { class: 'pick-head' }, el('b', { text: 'اختاري الألوان' }), el('span', { text: 'تگدرين تكررين نفس اللون' })),
+            el('div', { class: 'colors' },
+              shown.map((c) => el('button', {
+                type: 'button', class: 'chip' + (st.picked.includes(c) ? ' on' : ''), text: c,
+                onclick: () => {
+                  const i = st.picked.indexOf(c);
+                  if (i >= 0) st.picked.splice(i, 1); else st.picked.push(c);
+                  st.qty = Math.min(Math.max(st.qty, st.picked.length), Math.max(maxQty(), 1));
+                  draw();
+                },
+              })),
+              colors.length > shown.length ? el('button', { type: 'button', class: 'more', text: `+${colors.length - shown.length} لون`, onclick: () => { st.all = true; draw(); } }) : null),
+          );
+        }
+      }
+
+      if (inStock) {
+        const max = maxQty(), low = lowQty();
+        parts.push(el('div', { class: 'total' },
+          el('div', null,
+            el('div', { class: 'lbl', text: `المجموع · ${piecesAr(qty)}` }),
+            el('div', { class: 'sum' }, num(q.total), ' ', el('small', { text: 'د.ع' })),
+            q.regular > q.total ? el('div', { class: 'save' }, 'وفّرتي ', num(q.regular - q.total), ' د.ع') : null,
+            q.free ? el('div', { class: 'save', text: '🚚 توصيل مجاني' }) : null),
+          el('div', { class: 'stepper' },
+            el('button', { type: 'button', disabled: qty <= low, onclick: () => { st.qty--; draw(); } }, '−'),
+            el('span', { text: qty }),
+            el('button', { type: 'button', class: 'plus', disabled: qty >= max, onclick: () => { st.qty++; draw(); } }, '+'))));
+        const h = nextHint(price, tiers, qty, stock);
+        if (h) {
+          // متوسط سعر القطعة بعد الإضافة لازم يكون أرخص من الحالي، وإلا ما نعرض التلميح
+          const nq = quote(price, tiers, qty + h.missing);
+          const per = Math.ceil(nq.total / (qty + h.missing));
+          const isLast = h.tier.qty === tiers[tiers.length - 1].qty;
+          if (per < q.total / qty) {
+            parts.push(el('div', { class: 'hint' }, `✨ ضيفي ${piecesAr(h.missing)} وينزل سعر القطعة لـ `, num(per),
+              isLast && wholesale ? ' (سعر الجملة)' : ''));
+          } else if (nq.free && !q.free) {
+            parts.push(el('div', { class: 'hint', text: `✨ ضيفي ${piecesAr(h.missing)} وتاخذين توصيل مجاني` }));
+          }
+        }
+      }
+      dyn.replaceChildren(...parts);
+    }
+    draw();
+
+    const go = () => { track('click_app'); openApp(p.id); };
+    const stats = [
+      Number(p.sales_count) > 0 ? el('span', null, '🔥 ', num(p.sales_count), ' قطعة انطلبت') : null,
+      optionsLabel(colors) ? el('span', { text: `🎨 ${optionsLabel(colors)}` }) : null,
+      Number(p.rating) > 0 ? el('span', { text: `⭐ ${Number(p.rating).toFixed(1)}` }) : null,
+    ].filter(Boolean);
+
+    app.replaceChildren(
+      hero,
+      thumbs,
       el('div', { class: 'body' },
+        p.categories && p.categories.name ? el('div', { class: 'cat', text: p.categories.name }) : null,
         el('h1', { text: p.name }),
-        el('div', { class: 'price' },
-          el('span', { class: 'now' }, el('span', { class: 'num', text: money(price) }), ' د.ع'),
-          old > price ? el('span', { class: 'old' }, el('span', { class: 'num', text: money(old) })) : null,
-        ),
-        tiers.length
-          ? el('div', { class: 'tiers' }, tiers.map((t) => el('div', null,
-              `${pieces(t.qty)} بـ `, el('span', { class: 'num', text: money(t.price) }), ' د.ع',
-              t.free_delivery === true ? ' + توصيل مجاني' : '')))
-          : null,
-        el('div', { class: 'stock ' + (inStock ? 'in' : 'out'), text: inStock ? 'متوفر' : 'نفد حالياً' }),
-        p.description ? el('div', { class: 'desc', text: p.description }) : null,
+        stats.length ? el('div', { class: 'stats' }, stats) : null,
+        dyn,
         el('div', { class: 'actions' },
-          el('button', { class: 'btn primary', type: 'button', onclick: () => { track('click_app'); openApp(p.id); } }, 'اطلبه من تطبيق MODO'),
-          storeButtons(),
-        ),
-        el('div', { class: 'note', text: 'الدفع نقداً عند الاستلام · توصيل لكل المحافظات' }),
+          el('button', { class: 'btn primary', type: 'button', disabled: !inStock, onclick: go }, inStock ? 'اطلبي الآن' : 'نفد حالياً'),
+          el('button', { class: 'btn', type: 'button', disabled: !inStock, onclick: go }, '🛍️ أضيفي للسلة')),
+        el('div', { class: 'trust' },
+          el('span', null, '🚚', el('br'), 'توصيل لكل العراق'),
+          el('span', null, '💵', el('br'), 'الدفع عند الاستلام'),
+          el('span', null, '📸', el('br'), 'ألوان حقيقية')),
+        p.description ? el('div', { class: 'desc-title', text: 'الوصف' }) : null,
+        p.description ? el('div', { class: 'desc', text: p.description }) : null,
+        storeButtons(),
       ),
-    ));
+    );
   }
 
   function renderMissing() {
-    app.replaceChildren(el('div', { class: 'card' }, el('div', { class: 'body' },
+    app.replaceChildren(el('div', { class: 'body' },
       el('div', { class: 'state', text: 'هذا المنتج غير متوفر حالياً، شوف منتجاتنا الثانية بالتطبيق.' }),
-      el('div', { class: 'actions' }, storeButtons()),
-    )));
+      storeButtons(),
+    ));
   }
 
   async function load() {
     if (!Number.isInteger(id) || id <= 0) return renderMissing();
     try {
-      const cols = 'id,name,price,old_price,image_url,description,stock,bulk_tiers';
+      const cols = 'id,name,price,old_price,image_url,description,stock,bulk_tiers,colors,sales_count,rating,is_wholesale,min_qty,categories(name)';
       const res = await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=${cols}`, {
         headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
       });
