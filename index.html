@@ -1221,9 +1221,17 @@
       $('prod-list').replaceChildren(el('div', { class: 'empty error', text: friendlyError(error) }));
       return;
     }
-    adm.products = data || [];
+    // كلفة الشراء محفوظة بجدول خاص بالأدمن بس (ما تنقرا من جدول المنتجات)
+    const costs = await productCosts();
+    adm.products = (data || []).map((p) => (costs.has(p.id) ? { ...p, product_cost: costs.get(p.id) } : p));
     adm.productsLoaded = true;
     renderProducts();
+  }
+
+  async function productCosts() {
+    const { data, error } = await db.rpc('admin_product_costs');
+    if (error) return new Map();
+    return new Map((data || []).map((c) => [c.product_id, c.cost]));
   }
 
   function renderProducts() {
@@ -1555,6 +1563,9 @@
           : db.from('products').update(payload).eq('id', p.id).select(PRODUCT_COLS).single();
         const { data, error } = await q;
         if (error) throw error;
+        // السيرفر ينقل الكلفة للجدول الخاص ويرجّعها فارغة، فنعرض القيمة اللي انحفظت
+        if (cost != null) data.product_cost = cost;
+        else if (!isNew && p.product_cost != null) data.product_cost = p.product_cost;
         if (isNew) adm.products.unshift(data);
         else adm.products[adm.products.findIndex((x) => x.id === p.id)] = data;
         dlg.close();
