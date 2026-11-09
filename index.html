@@ -361,6 +361,7 @@
       <button type="button" data-section="stories" aria-pressed="false">الستوري</button>
       <button type="button" data-section="splash" aria-pressed="false">إعلان الافتتاح</button>
       <button type="button" data-section="influencers" aria-pressed="false">المؤثرين</button>
+      <button type="button" data-section="gifts" aria-pressed="false">الهدايا 🎁</button>
     </nav>
   </header>
 
@@ -441,6 +442,11 @@
   <main class="wrap hidden" id="sec-influencers">
     <div class="new-clip" id="inf-editor"></div>
     <div id="inf-list"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-gifts">
+    <div class="new-clip" id="gift-editor"></div>
+    <div id="gift-list"></div>
   </main>
 </div>
 
@@ -1188,7 +1194,7 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
@@ -1198,6 +1204,7 @@
     if (name === 'stories') openStories();
     if (name === 'splash') openSplash();
     if (name === 'influencers') openInfluencers();
+    if (name === 'gifts') openGifts();
     window.scrollTo(0, 0);
   }
 
@@ -2630,6 +2637,161 @@
       el('div', { style: 'display:flex;gap:8px' },
         save,
         inf ? el('button', { class: 'btn', type: 'button', onclick: () => renderInfluencerEditor(null) }, 'إلغاء') : null,
+      ),
+    );
+  }
+
+  // ================= الهدايا المجانية ويه الطلب =================
+  // الزبون يختار هدية بصفحة إتمام الطلب، والسيرفر يتحقق (فعّالة، متوفرة، الحد الأدنى، مرة لكل رقم)
+  // وتنضاف للطلب بسعر 0 وتنخصم من المخزون (وترجع إذا انلغى الطلب).
+  const giftLocal = (v) => { if (!v) return ''; const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+
+  async function openGifts() {
+    if (!adm.productsLoaded) await loadProducts();
+    if (!$('gift-editor').childElementCount) renderGiftEditor(null);
+    loadGifts();
+  }
+
+  async function loadGifts() {
+    $('gift-list').replaceChildren(el('div', { class: 'empty', text: 'جاري التحميل...' }));
+    const [offers, given] = await Promise.all([
+      db.from('gift_offers').select('*').order('sort_order').order('id', { ascending: false }),
+      db.from('order_items').select('gift_offer_id').not('gift_offer_id', 'is', null).limit(5000),
+    ]);
+    if (offers.error) { $('gift-list').replaceChildren(el('div', { class: 'empty error', text: friendlyError(offers.error) })); return; }
+    const counts = new Map();
+    (given.data || []).forEach((r) => counts.set(r.gift_offer_id, (counts.get(r.gift_offer_id) || 0) + 1));
+    adm.gifts = (offers.data || []).map((g) => ({ ...g, given: counts.get(g.id) || 0 }));
+    renderGifts();
+  }
+
+  function giftState(g) {
+    const now = Date.now();
+    const p = adm.products.find((x) => x.id === g.product_id);
+    if (!g.is_active) return ['متوقفة', 'muted'];
+    if (g.starts_at && new Date(g.starts_at).getTime() > now) return ['تبدي ' + new Date(g.starts_at).toLocaleString('en-GB'), 'muted'];
+    if (g.ends_at && new Date(g.ends_at).getTime() <= now) return ['خلصت', 'muted'];
+    if (!p || !(Number(p.stock) > 0)) return ['نفد المخزون', 'error'];
+    return ['شغّالة هسه ✅', 'ok'];
+  }
+
+  function renderGifts() {
+    const list = adm.gifts || [];
+    if (!list.length) {
+      $('gift-list').replaceChildren(el('div', { class: 'empty', text: 'ماكو هدايا لحد هسه. ضيفوا هدية من فوگ، وتطلع للزبائن بصفحة إتمام الطلب.' }));
+      return;
+    }
+    $('gift-list').replaceChildren(
+      el('h3', { text: 'الهدايا', style: 'margin:6px 0 10px' }),
+      ...list.map((g) => {
+        const p = adm.products.find((x) => x.id === g.product_id) || {};
+        const img = Array.isArray(p.image_url) ? p.image_url[0] : null;
+        const [state, cls] = giftState(g);
+        const toggle = el('button', { class: 'btn btn-sm', type: 'button' }, g.is_active ? 'إيقاف' : 'تفعيل');
+        toggle.addEventListener('click', async () => {
+          toggle.disabled = true;
+          const { error } = await db.from('gift_offers').update({ is_active: !g.is_active }).eq('id', g.id);
+          if (error) { toast(friendlyError(error), true); toggle.disabled = false; return; }
+          loadGifts();
+        });
+        const del = el('button', { class: 'btn btn-sm', type: 'button', style: 'color:var(--danger, #c62828)' }, 'حذف');
+        del.addEventListener('click', async () => {
+          if (!confirm('تحذف هذه الهدية؟ الطلبات القديمة اللي بيها الهدية تبقى مثل ما هي.')) return;
+          const { error } = await db.from('gift_offers').delete().eq('id', g.id);
+          if (error) { toast(friendlyError(error), true); return; }
+          toast('انحذفت الهدية');
+          loadGifts();
+        });
+        return el('div', { class: 'inf-card' },
+          el('div', { style: 'display:flex;gap:12px;align-items:center' },
+            img ? el('img', { src: img, alt: '', style: 'width:64px;height:64px;object-fit:cover;border-radius:12px;flex:none' }) : null,
+            el('div', { style: 'flex:1;min-width:0' },
+              el('div', { style: 'font-weight:800', text: (g.title ? g.title + ' · ' : '') + (p.name || ('منتج #' + g.product_id)) }),
+              el('div', { class: cls === 'error' ? 'error' : 'muted', style: 'font-size:13px', text: state }),
+              el('div', { class: 'muted', style: 'font-size:13px', text:
+                `المخزون: ${p.stock ?? '?'} · أقل طلب: ${Number(g.min_order) > 0 ? money(g.min_order) + ' د.ع' : 'أي طلب'} · ${g.once_per_phone ? 'مرة وحدة لكل رقم' : 'بكل طلب'}` }),
+              el('div', { class: 'muted', style: 'font-size:13px', text:
+                `من: ${g.starts_at ? new Date(g.starts_at).toLocaleString('en-GB') : 'هسه'} · إلى: ${g.ends_at ? new Date(g.ends_at).toLocaleString('en-GB') : 'بدون نهاية'} · انطت: ${g.given} مرة` }),
+            ),
+          ),
+          el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { renderGiftEditor(g); window.scrollTo(0, 0); } }, 'تعديل'),
+            toggle, del),
+        );
+      }),
+    );
+  }
+
+  function renderGiftEditor(g) {
+    const box = $('gift-editor');
+    const search = el('input', { class: 'field', placeholder: 'ابحث باسم المنتج أو رقمه...' });
+    const pick = el('select', { class: 'field' });
+    const fill = () => {
+      const q = search.value.trim();
+      const rows = adm.products
+        .filter((p) => (Number(p.stock) > 0 || (g && p.id === g.product_id)) && (!q || String(p.id) === q.replace('#', '') || (p.name || '').includes(q)))
+        .slice(0, 200);
+      pick.replaceChildren(
+        el('option', { value: '', text: rows.length ? '— اختاروا المنتج —' : 'ماكو نتائج' }),
+        ...rows.map((p) => el('option', { value: p.id, text: `#${p.id} · ${p.name} · مخزون ${p.stock}` })),
+      );
+      if (g) pick.value = String(g.product_id);
+    };
+    search.addEventListener('input', fill);
+    fill();
+    const title = el('input', { class: 'field', maxlength: 40, placeholder: 'اختياري، مثال: هدية الافتتاح', value: g ? g.title || '' : '' });
+    const minOrder = el('input', { class: 'field', type: 'number', min: 0, step: 1000, value: g ? Number(g.min_order) : 0 });
+    const starts = el('input', { class: 'field', type: 'datetime-local', value: giftLocal(g && g.starts_at) });
+    const ends = el('input', { class: 'field', type: 'datetime-local', value: giftLocal(g && g.ends_at) });
+    const once = el('input', { type: 'checkbox' });
+    once.checked = g ? g.once_per_phone : true;
+    const active = el('input', { type: 'checkbox' });
+    active.checked = g ? g.is_active : true;
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, g ? 'حفظ التعديل' : 'إضافة الهدية');
+
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      const productId = Number(pick.value);
+      if (!productId) { err.textContent = 'اختاروا المنتج اللي يصير هدية'; return; }
+      if (starts.value && ends.value && new Date(ends.value) <= new Date(starts.value)) { err.textContent = 'النهاية لازم بعد البداية'; return; }
+      const row = {
+        product_id: productId,
+        title: title.value.trim() || null,
+        min_order: Math.max(0, Math.round(Number(minOrder.value) || 0)),
+        starts_at: starts.value ? new Date(starts.value).toISOString() : null,
+        ends_at: ends.value ? new Date(ends.value).toISOString() : null,
+        once_per_phone: once.checked,
+        is_active: active.checked,
+      };
+      save.disabled = true;
+      const { error } = g
+        ? await db.from('gift_offers').update(row).eq('id', g.id)
+        : await db.from('gift_offers').insert(row);
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      toast(g ? 'انحفظ التعديل ✅' : 'انضافت الهدية ✅');
+      renderGiftEditor(null);
+      loadGifts();
+    });
+
+    box.replaceChildren(
+      el('h3', { text: g ? 'تعديل الهدية' : 'هدية جديدة 🎁', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'الهدية تطلع للزبون بصفحة إتمام الطلب (بالنسخة الجديدة من التطبيق)، ويختار وحدة ويه طلبه. تنضاف للطلب بسعر 0 وتنخصم من مخزون المنتج، وإذا انلغى الطلب ترجع. بتيليگرام والصفحة تبين بالطلب كـ "هدية مجانية 🎁".' }),
+      el('div', { class: 'form-grid' },
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: 'المنتج' }), search, pick),
+        el('div', null, el('label', { class: 'lbl', text: 'عنوان الهدية (اختياري)' }), title),
+        el('div', null, el('label', { class: 'lbl', text: 'أقل مبلغ للطلب (د.ع)' }), minOrder,
+          el('div', { class: 'help', text: '0 = ويه أي طلب.' })),
+        el('div', null, el('label', { class: 'lbl', text: 'تبدي (اختياري)' }), starts),
+        el('div', null, el('label', { class: 'lbl', text: 'تنتهي (اختياري)' }), ends),
+        el('label', { class: 'check full' }, once, 'مرة وحدة لكل رقم تلفون (ينصح بيها حتى ما أحد يكرر الطلبات على الهدية)'),
+        el('label', { class: 'check full' }, active, 'فعّالة'),
+      ),
+      err,
+      el('div', { style: 'display:flex;gap:8px' },
+        save,
+        g ? el('button', { class: 'btn', type: 'button', onclick: () => renderGiftEditor(null) }, 'إلغاء') : null,
       ),
     );
   }
