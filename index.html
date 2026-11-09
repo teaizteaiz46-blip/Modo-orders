@@ -433,6 +433,7 @@
   </main>
 
   <main class="wrap hidden" id="sec-push">
+    <div class="new-clip" id="chatbot-card"></div>
     <div class="new-clip" id="push-form"></div>
     <div id="push-log"></div>
   </main>
@@ -2183,9 +2184,45 @@
   // ---------- الإشعارات (Firebase) ----------
   let pushFormReady = false;
   async function openPush() {
+    renderChatBotCard();
     if (!adm.productsLoaded) await loadProducts();
     if (!pushFormReady) renderPushForm();
     loadPushLog();
+  }
+
+  // ---------- بوت دردشة الزبائن (@modo_chat_bot) ----------
+  async function chatBotCall(action) {
+    const { data, error } = await db.functions.invoke('chat-bot', { body: { action } });
+    if (error) return { ok: false, error: 'network' };
+    return data || { ok: false };
+  }
+
+  function chatBotMessage(r) {
+    if (r.ok && r.group_connected) return `✅ البوت @${r.bot} شغّال ومربوط بگروب رسائل الزبائن.`;
+    if (r.ok) return `✅ البوت @${r.bot} جاهز. هسه اكتبوا /connect داخل گروب رسائل الزبائن (بموضوع General).`;
+    if (r.error === 'token_missing') return '⚠️ التوكن مو موجود. حطّوه بلوحة Supabase ← Edge Functions ← Secrets باسم CHAT_BOT_TOKEN';
+    if (r.error === 'bad_token') return '⚠️ التوكن غلط. تأكدوا منه بـ BotFather وحدّثوه بالـ Secrets';
+    if (r.error === 'webhook') return '⚠️ ما انربط الـ webhook، جرّبوا مرة ثانية';
+    return '⚠️ تعذر الاتصال، جرّبوا مرة ثانية';
+  }
+
+  async function renderChatBotCard() {
+    const box = $('chatbot-card');
+    const status = el('div', { class: 'muted', text: 'جاري فحص البوت...' });
+    const btn = el('button', { class: 'btn btn-sm', type: 'button', text: 'ربط بوت الدردشة' });
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      status.textContent = 'جاري الربط...';
+      status.textContent = chatBotMessage(await chatBotCall('setup'));
+      btn.disabled = false;
+    });
+    box.replaceChildren(
+      el('h3', { text: '💬 دردشة الزبائن' }),
+      el('div', { class: 'muted', text: 'الزبائن يراسلون من التطبيق، والرسائل توصل لگروب تيليگرام "رسائل الزبائن" (كل زبون بموضوع خاص). الرد يكون داخل موضوع الزبون، ولإرسال منتج: /p رقم_المنتج أو /p رقم_المنتج رقم_الصورة' }),
+      status,
+      btn,
+    );
+    status.textContent = chatBotMessage(await chatBotCall('status'));
   }
 
   function renderPushForm() {
