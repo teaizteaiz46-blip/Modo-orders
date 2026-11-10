@@ -362,6 +362,7 @@
       <button type="button" data-section="splash" aria-pressed="false">إعلان الافتتاح</button>
       <button type="button" data-section="influencers" aria-pressed="false">المؤثرين</button>
       <button type="button" data-section="gifts" aria-pressed="false">الهدايا 🎁</button>
+      <button type="button" data-section="offers" aria-pressed="false">العروض 🏷️</button>
     </nav>
   </header>
 
@@ -447,6 +448,11 @@
   <main class="wrap hidden" id="sec-gifts">
     <div class="new-clip" id="gift-editor"></div>
     <div id="gift-list"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-offers">
+    <div class="new-clip" id="offer-editor"></div>
+    <div id="offer-list"></div>
   </main>
 </div>
 
@@ -1194,7 +1200,7 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts', 'offers'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
@@ -1205,6 +1211,7 @@
     if (name === 'splash') openSplash();
     if (name === 'influencers') openInfluencers();
     if (name === 'gifts') openGifts();
+    if (name === 'offers') openOffers();
     window.scrollTo(0, 0);
   }
 
@@ -2794,6 +2801,259 @@
         g ? el('button', { class: 'btn', type: 'button', onclick: () => renderGiftEditor(null) }, 'إلغاء') : null,
       ),
     );
+  }
+
+  // ================= العروض (على مجموعة منتجات) =================
+  // باقة: أي N قطع من منتجات العرض بسعر ثابت (والتوصيل مجاني إذا مأشّر)، تنجمع من موديلات وألوان مختلفة.
+  // توصيل مجاني: الأسعار عادية، بس إذا مجموع قطع منتجات العرض وصل N، التوصيل مجاني.
+  // المنتج يدخل بعرض واحد بس. الحساب كله بالسيرفر (private.cart_price)، والعرض يلغي عروض الكمية الخاصة بالمنتج.
+  const offerPieces = (n) => (n === 2 ? 'قطعتين' : n <= 10 ? n + ' قطع' : n + ' قطعة');
+  const offerRule = (o) => o.kind === 'bundle'
+    ? `أي ${offerPieces(o.qty)} بـ ${money(o.price)} د.ع${o.free_delivery ? ' + توصيل مجاني' : ''}`
+    : `${offerPieces(o.qty)} من العرض = توصيل مجاني`;
+
+  async function openOffers() {
+    if (!adm.productsLoaded) await loadProducts();
+    if (!$('offer-editor').childElementCount) renderOfferEditor(null);
+    loadOffers();
+  }
+
+  async function loadOffers() {
+    $('offer-list').replaceChildren(el('div', { class: 'empty', text: 'جاري التحميل...' }));
+    const [offers, links] = await Promise.all([
+      db.from('offers').select('*').order('id', { ascending: false }),
+      db.from('offer_products').select('offer_id, product_id').limit(5000),
+    ]);
+    const error = offers.error || links.error;
+    if (error) { $('offer-list').replaceChildren(el('div', { class: 'empty error', text: friendlyError(error) })); return; }
+    const byOffer = new Map();
+    (links.data || []).forEach((r) => {
+      if (!byOffer.has(r.offer_id)) byOffer.set(r.offer_id, []);
+      byOffer.get(r.offer_id).push(r.product_id);
+    });
+    adm.offers = (offers.data || []).map((o) => ({ ...o, products: byOffer.get(o.id) || [] }));
+    renderOffers();
+  }
+
+  function offerState(o) {
+    const now = Date.now();
+    if (!o.is_active) return ['متوقف', 'muted'];
+    if (o.starts_at && new Date(o.starts_at).getTime() > now) return ['يبدي ' + new Date(o.starts_at).toLocaleString('en-GB'), 'muted'];
+    if (o.ends_at && new Date(o.ends_at).getTime() <= now) return ['خلص', 'muted'];
+    const inStock = o.products.filter((id) => Number((adm.products.find((p) => p.id === id) || {}).stock) > 0).length;
+    if (!inStock) return ['كل منتجاته نافدة', 'error'];
+    return ['شغّال هسه ✅', 'ok'];
+  }
+
+  function renderOffers() {
+    const list = adm.offers || [];
+    if (!list.length) {
+      $('offer-list').replaceChildren(el('div', { class: 'empty', text: 'ماكو عروض لحد هسه. سووا عرض من فوگ.' }));
+      return;
+    }
+    $('offer-list').replaceChildren(
+      el('h3', { text: 'العروض', style: 'margin:6px 0 10px' }),
+      ...list.map((o) => {
+        const [state, cls] = offerState(o);
+        const prods = o.products.map((id) => adm.products.find((p) => p.id === id) || { id });
+        const inStock = prods.filter((p) => Number(p.stock) > 0).length;
+        const toggle = el('button', { class: 'btn btn-sm', type: 'button' }, o.is_active ? 'إيقاف' : 'تفعيل');
+        toggle.addEventListener('click', async () => {
+          toggle.disabled = true;
+          const { error } = await db.from('offers').update({ is_active: !o.is_active }).eq('id', o.id);
+          if (error) { toast(friendlyError(error), true); toggle.disabled = false; return; }
+          loadOffers();
+        });
+        const del = el('button', { class: 'btn btn-sm', type: 'button', style: 'color:var(--danger, #c62828)' }, 'حذف');
+        del.addEventListener('click', async () => {
+          if (!confirm(`تحذف العرض "${o.title}"؟ المنتجات ترجع لأسعارها وعروضها العادية. الطلبات القديمة تبقى مثل ما هي.`)) return;
+          const { error } = await db.from('offers').delete().eq('id', o.id);
+          if (error) { toast(friendlyError(error), true); return; }
+          toast('انحذف العرض');
+          if (adm.offerEditing === o.id) renderOfferEditor(null);
+          loadOffers();
+        });
+        return el('div', { class: 'inf-card' },
+          el('div', null,
+            el('div', { style: 'font-weight:800', text: o.title }),
+            el('div', { style: 'font-size:14px;font-weight:700;color:#1b7f3b', text: offerRule(o) }),
+            el('div', { class: cls === 'error' ? 'error' : 'muted', style: 'font-size:13px', text: state }),
+            el('div', { class: 'muted', style: 'font-size:13px', text:
+              `المنتجات: ${prods.length} (المتوفر ${inStock}) · من: ${o.starts_at ? new Date(o.starts_at).toLocaleString('en-GB') : 'هسه'} · إلى: ${o.ends_at ? new Date(o.ends_at).toLocaleString('en-GB') : 'بدون نهاية'}` }),
+          ),
+          el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
+            ...prods.slice(0, 12).map((p) => {
+              const img = Array.isArray(p.image_url) ? p.image_url[0] : null;
+              return img
+                ? el('img', { src: img, alt: p.name || '', title: `#${p.id} ${p.name || ''}`, style: `width:44px;height:44px;object-fit:cover;border-radius:10px;${Number(p.stock) > 0 ? '' : 'opacity:.35'}` })
+                : el('span', { class: 'muted', style: 'font-size:12px', text: '#' + p.id });
+            }),
+            prods.length > 12 ? el('span', { class: 'muted', style: 'align-self:center;font-size:13px', text: '+' + (prods.length - 12) }) : null,
+          ),
+          el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+            el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { renderOfferEditor(o); window.scrollTo(0, 0); } }, 'تعديل'),
+            toggle, del),
+        );
+      }),
+    );
+  }
+
+  function renderOfferEditor(o) {
+    adm.offerEditing = o ? o.id : null;
+    const box = $('offer-editor');
+    const selected = new Set(o ? o.products : []);
+    // المنتج بعرض واحد بس: نعرف وين موجود حتى ما يتكرر
+    const offerOfProduct = new Map();
+    (adm.offers || []).forEach((x) => { if (!o || x.id !== o.id) x.products.forEach((id) => offerOfProduct.set(id, x)); });
+
+    const title = el('input', { class: 'field', maxlength: 60, placeholder: 'مثال: عرض الشتاء ❄️', value: o ? o.title : '' });
+    const kind = el('select', { class: 'field' },
+      el('option', { value: 'bundle', text: 'باقة بسعر ثابت (أي N قطع بمبلغ)' }),
+      el('option', { value: 'free_delivery', text: 'توصيل مجاني بس (الأسعار عادية)' }),
+    );
+    kind.value = o ? o.kind : 'bundle';
+    const qty = el('input', { class: 'field', type: 'number', min: 2, max: 50, step: 1, value: o ? o.qty : 3 });
+    const price = el('input', { class: 'field', type: 'number', min: 0, step: 250, value: o && o.price != null ? Number(o.price) : '' });
+    const fd = el('input', { type: 'checkbox' });
+    fd.checked = o ? o.free_delivery : true;
+    const starts = el('input', { class: 'field', type: 'datetime-local', value: giftLocal(o && o.starts_at) });
+    const ends = el('input', { class: 'field', type: 'datetime-local', value: giftLocal(o && o.ends_at) });
+    const active = el('input', { type: 'checkbox' });
+    active.checked = o ? o.is_active : true;
+    const err = el('div', { class: 'error', role: 'alert' });
+    const warn = el('div', { class: 'help', style: 'color:#b26a00;font-weight:700' });
+    const preview = el('div', { style: 'font-weight:800;color:#1b7f3b' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, o ? 'حفظ التعديل' : 'إضافة العرض');
+
+    const priceBox = el('div', null, el('label', { class: 'lbl', text: 'سعر الباقة (د.ع)' }), price);
+    const fdBox = el('label', { class: 'check full' }, fd, 'التوصيل مجاني ويه الباقة');
+
+    const chips = el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' });
+    const search = el('input', { class: 'field', placeholder: 'ابحث باسم المنتج أو رقمه وضيفه للعرض...' });
+    const results = el('div', { style: 'display:grid;gap:4px;max-height:260px;overflow:auto' });
+
+    const refresh = () => {
+      const bundle = kind.value === 'bundle';
+      priceBox.style.display = bundle ? '' : 'none';
+      fdBox.style.display = bundle ? '' : 'none';
+      const n = Math.round(Number(qty.value) || 0);
+      const pz = Number(price.value) || 0;
+      preview.textContent = n >= 2 ? 'الزبون يشوف: ' + offerRule({ kind: kind.value, qty: n, price: pz, free_delivery: bundle ? fd.checked : true }) : '';
+      // تنبيه: إذا سعر القطعة بالباقة أغلى من سعر منتج عادي، الزبون يدفع أكثر
+      warn.textContent = '';
+      if (bundle && n >= 2 && pz > 0 && selected.size) {
+        const per = pz / n;
+        const dearer = [...selected].map((id) => adm.products.find((p) => p.id === id)).filter((p) => p && Number(p.price) < per);
+        if (dearer.length) warn.textContent = `⚠️ سعر القطعة بالباقة (${money(per)}) أغلى من السعر العادي لـ: ${dearer.slice(0, 5).map((p) => p.name).join('، ')}${dearer.length > 5 ? '…' : ''}. الزبون راح يدفع أكثر بهذي المنتجات.`;
+      }
+      chips.replaceChildren(
+        ...(selected.size ? [] : [el('span', { class: 'muted', style: 'font-size:13px', text: 'ما اخترتوا منتجات بعد.' })]),
+        ...[...selected].map((id) => {
+          const p = adm.products.find((x) => x.id === id) || { id, name: 'منتج #' + id };
+          return el('span', { style: 'display:inline-flex;align-items:center;gap:6px;background:#eaf7ee;border:1px solid #b9e2c5;border-radius:20px;padding:4px 6px 4px 10px;font-size:13px' },
+            `#${p.id} ${p.name}${Number(p.stock) > 0 ? '' : ' (نافد)'} · ${money(p.price)}`,
+            el('button', { type: 'button', class: 'btn btn-sm', style: 'min-height:24px;padding:0 8px', 'aria-label': 'شيل', onclick: () => { selected.delete(id); refresh(); } }, '✕'),
+          );
+        }),
+      );
+      const q = search.value.trim();
+      if (!q) { results.replaceChildren(); return; }
+      const rows = adm.products
+        .filter((p) => String(p.id) === q.replace('#', '') || (p.name || '').includes(q))
+        .slice(0, 40);
+      results.replaceChildren(
+        ...(rows.length ? [] : [el('div', { class: 'muted', text: 'ماكو نتائج' })]),
+        ...rows.map((p) => {
+          const other = offerOfProduct.get(p.id);
+          const added = selected.has(p.id);
+          const btn = el('button', { class: 'btn btn-sm', type: 'button', disabled: added || !!other ? '' : null }, added ? 'مضاف ✓' : other ? 'بعرض ثاني' : '+ إضافة');
+          btn.addEventListener('click', () => { selected.add(p.id); refresh(); });
+          return el('div', { style: 'display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0' },
+            el('span', { style: 'font-size:13px', text: `#${p.id} · ${p.name} · ${money(p.price)} د.ع · مخزون ${p.stock}${other ? ` · (بعرض "${other.title}")` : ''}` }),
+            btn);
+        }),
+      );
+    };
+    [kind, qty, price, fd].forEach((x) => x.addEventListener('input', refresh));
+    kind.addEventListener('change', refresh);
+    search.addEventListener('input', refresh);
+
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      const bundle = kind.value === 'bundle';
+      const n = Math.round(Number(qty.value) || 0);
+      const pz = Math.round(Number(price.value) || 0);
+      if (title.value.trim().length < 2) { err.textContent = 'اكتبوا عنوان العرض'; return; }
+      if (n < 2 || n > 50) { err.textContent = 'عدد القطع من 2 إلى 50'; return; }
+      if (bundle && pz <= 0) { err.textContent = 'اكتبوا سعر الباقة'; return; }
+      if (!selected.size) { err.textContent = 'ضيفوا منتج واحد على الأقل للعرض'; return; }
+      if (starts.value && ends.value && new Date(ends.value) <= new Date(starts.value)) { err.textContent = 'النهاية لازم بعد البداية'; return; }
+      if (warn.textContent && !confirm(warn.textContent + '\n\nتكمل وتحفظ؟')) return;
+      const row = {
+        title: title.value.trim(),
+        kind: kind.value,
+        qty: n,
+        price: bundle ? pz : null,
+        free_delivery: bundle ? fd.checked : true,
+        starts_at: starts.value ? new Date(starts.value).toISOString() : null,
+        ends_at: ends.value ? new Date(ends.value).toISOString() : null,
+        is_active: active.checked,
+      };
+      save.disabled = true;
+      try {
+        let id = o && o.id;
+        if (id) {
+          const { error } = await db.from('offers').update(row).eq('id', id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await db.from('offers').insert(row).select('id').single();
+          if (error) throw error;
+          id = data.id;
+        }
+        const before = new Set(o ? o.products : []);
+        const removed = [...before].filter((x) => !selected.has(x));
+        const added = [...selected].filter((x) => !before.has(x));
+        if (removed.length) {
+          const { error } = await db.from('offer_products').delete().eq('offer_id', id).in('product_id', removed);
+          if (error) throw error;
+        }
+        if (added.length) {
+          const { error } = await db.from('offer_products').insert(added.map((pid) => ({ offer_id: id, product_id: pid })));
+          if (error) throw error;
+        }
+        toast(o ? 'انحفظ العرض ✅' : 'انضاف العرض ✅');
+        renderOfferEditor(null);
+        loadOffers();
+      } catch (e) {
+        err.textContent = e && e.code === '23505' ? 'منتج من المختارة صار بعرض ثاني، حدّثوا الصفحة وجرّبوا مرة ثانية' : friendlyError(e);
+      } finally {
+        save.disabled = false;
+      }
+    });
+
+    box.replaceChildren(
+      el('h3', { text: o ? 'تعديل العرض' : 'عرض جديد 🏷️', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'الزبون يجمع قطع من منتجات العرض (أي موديل وأي لون) والعرض ينحسب على المجموع. مثال: ربطة + شالين = 3 قطع بـ 20,000 والتوصيل مجاني. الباقة تلغي عروض الكمية وأسعار الجملة الخاصة بالمنتج طول ما هي شغّالة (عرض التوصيل المجاني ما يلغي شي). المنتج يدخل بعرض واحد بس.' }),
+      el('div', { class: 'help', style: 'color:#b26a00;font-weight:700', text: '⚠️ العروض تطلع بالتطبيق من نسخة 2.0.3 وفوگ. السيرفر يحسبها لكل الطلبات، فلا تشغّلون عرض قبل ما تنزل 2.0.3 بالمتجرين، حتى الزبون بالنسخة القديمة ما يشوف سعر ويندفع غيره.' }),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'عنوان العرض' }), title),
+        el('div', null, el('label', { class: 'lbl', text: 'نوع العرض' }), kind),
+        el('div', null, el('label', { class: 'lbl', text: 'عدد القطع' }), qty),
+        priceBox,
+        fdBox,
+        el('div', { class: 'full' }, preview),
+        el('div', { class: 'full' }, el('label', { class: 'lbl', text: `منتجات العرض` }), chips, search, results, warn),
+        el('div', null, el('label', { class: 'lbl', text: 'يبدي (اختياري)' }), starts),
+        el('div', null, el('label', { class: 'lbl', text: 'ينتهي (اختياري)' }), ends),
+        el('label', { class: 'check full' }, active, 'فعّال'),
+      ),
+      err,
+      el('div', { style: 'display:flex;gap:8px' },
+        save,
+        o ? el('button', { class: 'btn', type: 'button', onclick: () => renderOfferEditor(null) }, 'إلغاء') : null,
+      ),
+    );
+    refresh();
   }
 
   // ================= الأحداث =================
