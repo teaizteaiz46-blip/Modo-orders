@@ -310,7 +310,8 @@
         const mq = st.mix ? qty : 0;
         const u = unitFor(price, uts, qty, false);
         const mu = Math.min(unitFor(price, uts, mq, true), u);
-        q = { total: (qty - mq) * u + mq * mu, regular: price * qty, free: false };
+        const free = uts.some((t) => p.unit_tiers.find((r) => Number(r.min) === t.min && !!r.mix === t.mix && r.free_delivery === true) && t.min <= (t.mix ? mq : qty));
+        q = { total: (qty - mq) * u + mq * mu, regular: price * qty, free };
       } else q = quote(price, tiers, qty);
       const parts = [];
 
