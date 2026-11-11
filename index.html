@@ -1441,19 +1441,36 @@
 
     // ---- أسعار الجملة (unit_tiers): كل القطع بسعر الدرجة إذا العدد وصلها. فارغ = الخصم الافتراضي.
     const UNIT_DEFAULT = [{ min: 6, pct: 27.5 }, { min: 12, pct: 27.5 }, { min: 12, pct: 30, mix: true }];
-    // "توصيل مجاني من N قطع": درجة بـ unit_tiers بدون خصم (pct 0) عليها free_delivery.
-    // ما تغيّر السعر ولا تطلع بشريط الأسعار؛ السيرفر (private.cart_price) والتطبيق يخلون التوصيل مجاني إذا العدد وصلها.
-    const isFdTier = (t) => !!t && t.free_delivery === true && !t.mix
-      && (Number(t.pct) === 0 || (t.price != null && Number(t.price) >= Number(p.price)));
-    const fdTier = (Array.isArray(p.unit_tiers) ? p.unit_tiers : []).find(isFdTier);
-    const srcUnit = (Array.isArray(p.unit_tiers) ? p.unit_tiers : (p.unit_tiers == null ? UNIT_DEFAULT : [])).filter((t) => !isFdTier(t));
-    const fdMin = el('input', { class: 'field', type: 'number', min: 2, max: 100, step: 1, inputmode: 'numeric', dir: 'ltr', placeholder: 'مثلاً 2', style: 'max-width:140px' });
+    // "توصيل مجاني من N قطع": درجة بـ unit_tiers عليها free_delivery. بدون سعر = pct 0 (السعر ما يتغير ولا تطلع بشريط الأسعار)،
+    // ويه سعر = عرض "من N قطع القطعة بكذا + توصيل مجاني". السيرفر (private.cart_price) والتطبيق يحسبونها.
+    const allUnit = Array.isArray(p.unit_tiers) ? p.unit_tiers : (p.unit_tiers == null ? UNIT_DEFAULT : []);
+    const fdTier = allUnit.find((t) => t && t.free_delivery === true && !t.mix);
+    const isSlotTier = (t) => (Number(t.min) === 6 && !t.mix) || Number(t.min) === 12;
+    const srcUnit = allUnit.filter((t) => t !== fdTier && isSlotTier(t));
+    // درجات إضافية (مو 6 أو 12 ومو التوصيل المجاني)، مثلاً عرض من 4 قطع: تنحفظ مثل ما هي
+    let extraUnit = allUnit.filter((t) => t !== fdTier && !isSlotTier(t));
+    const fdMin = el('input', { class: 'field', type: 'number', min: 2, max: 100, step: 1, inputmode: 'numeric', dir: 'ltr', placeholder: 'مثلاً 2', style: 'max-width:110px' });
     fdMin.value = fdTier ? fdTier.min : '';
-    function readFd() {
-      if (fdMin.value === '') return null;
+    const fdPrice = el('input', { class: 'field', type: 'number', min: 0, step: 250, inputmode: 'numeric', dir: 'ltr', placeholder: 'نفس السعر', style: 'max-width:140px' });
+    fdPrice.value = fdTier && fdTier.price != null && Number(fdTier.price) < Number(p.price) ? fdTier.price : '';
+    const extraBox = el('div');
+    const renderExtra = () => extraBox.replaceChildren(...extraUnit.map((t, i) => el('div', { class: 'help', style: 'display:flex;gap:8px;align-items:center' },
+      `درجة إضافية: من ${t.min} قطع ${t.mix ? '(مكس) ' : ''}القطعة بـ ${t.price != null ? money(t.price) + ' د.ع' : 'خصم ' + t.pct + '%'}`,
+      el('button', { class: 'btn btn-ghost btn-sm', type: 'button', title: 'حذف', onclick: () => { extraUnit.splice(i, 1); renderExtra(); } }, '✕'))));
+    renderExtra();
+    const fdBox = el('div', null,
+      el('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' },
+        el('span', { class: 'muted', text: 'من' }), fdMin, el('span', { class: 'muted', text: 'قطع، وسعر القطعة' }), fdPrice,
+        el('span', { class: 'muted', text: '(فارغ = نفس السعر)' })),
+      extraBox);
+    function readFd(unitPrice) {
+      if (fdMin.value === '') return fdPrice.value === '' ? null : 'اكتبوا عدد القطع للتوصيل المجاني، أو امسحوا السعر';
       const n = Number(fdMin.value);
       if (!Number.isInteger(n) || n < 2 || n > 100) return 'عدد قطع التوصيل المجاني لازم من 2 إلى 100، أو اتركه فارغ';
-      return { min: n, pct: 0, free_delivery: true };
+      if (fdPrice.value === '') return { min: n, pct: 0, free_delivery: true };
+      const v = Number(fdPrice.value);
+      if (!(v > 0) || v >= unitPrice) return `سعر القطعة بعرض التوصيل المجاني لازم أقل من السعر (${money(unitPrice)} د.ع)، أو اتركه فارغ`;
+      return { min: n, price: v, free_delivery: true };
     }
     const unitSlots = [
       { key: '6', label: '6-11 قطعة', min: 6, mix: false },
@@ -1540,14 +1557,16 @@
       if (typeof bulkTiers === 'string') { err.textContent = bulkTiers; return; }
       const unitTiers = readUnitTiers(price);
       if (typeof unitTiers === 'string') { err.textContent = unitTiers; return; }
-      const fdT = readFd();
+      const fdT = readFd(price);
       if (typeof fdT === 'string') { err.textContent = fdT; return; }
       // الباقات تلغي أسعار الجملة (بالتطبيق والسيرفر)، فننبه إذا الثنين موجودين
       if (bulkTiers.length && unitTiers.length) {
         const onlyFree = bulkTiers.every((t) => t.free_delivery && Number(t.price) >= t.qty * price);
         const ok = await confirmDialog('عروض كمية + أسعار جملة؟',
           'عروض الكمية (الباقات) تلغي أسعار الجملة (6-11 و 12+) لهذا المنتج، فالزبون ما راح يشوفها ولا تنحسب.'
-          + (onlyFree ? ' عرض الكمية هنا بس توصيل مجاني بنفس السعر: الأفضل تحذفونه وتكتبون العدد بخانة "توصيل مجاني من"، حتى تبقى أسعار الجملة.' : '')
+          + (onlyFree
+            ? ' عرض الكمية هنا بس توصيل مجاني بنفس السعر: الأفضل تحذفونه وتكتبون العدد بخانة "توصيل مجاني من"، حتى تبقى أسعار الجملة.'
+            : ' حتى تبقى أسعار الجملة: احذفوا عرض الكمية واكتبوا العدد وسعر القطعة بخانة "توصيل مجاني من".')
           + ' تكملون الحفظ هيج؟', 'أحفظ هيج');
         if (!ok) return;
       }
@@ -1592,7 +1611,7 @@
           offer_ends_at: f.offer.checked && f.ends.value ? new Date(f.ends.value).toISOString() : null,
           image_url: urls,
           bulk_tiers: bulkTiers,
-          unit_tiers: fdT ? [...unitTiers, fdT] : unitTiers,
+          unit_tiers: [...unitTiers, ...extraUnit, ...(fdT ? [fdT] : [])],
           offer_group: offerGroup,
           is_wholesale: f.wholesale.checked,
           min_qty: minQty,
@@ -1634,7 +1653,7 @@
           field('السعر قبل الخصم', f.oldPrice, { help: 'اتركه فارغ إذا ماكو خصم.' }),
           field('الألوان', f.colors, { full: true, help: 'افصل بينها بفاصلة. إذا كتبت ألوان، الزبون لازم يختار واحد قبل الإضافة للسلة.' }),
           field('أسعار الجملة (سعر القطعة حسب العدد)', unitBox, { full: true, help: 'إذا مجموع القطع (كل الألوان) وصل 6، كل القطع تنحسب بسعر 6-11، وإذا وصل 12 بسعر 12+. "مكس" للزبونة الي تختار "مكس ألوان" (إنتو تختارون الألوان) إذا طلبت 12 أو أكثر. إذا المنتج بيه "عروض كمية" (باقات)، الباقات هي الي تنحسب بداله.' }),
-          field('🚚 توصيل مجاني من (عدد القطع، اختياري)', fdMin, { full: true, help: 'إذا الزبون طلب هذا العدد من المنتج (كل الألوان، ويه منتجات مجموعة العرض إذا اكو)، التوصيل يصير مجاني. ما يغيّر السعر ولا أسعار الجملة. فارغ = بدون. (منفصل عن "التوصيل المجاني حسب عدد القطع" للطلب كله بقسم العروض.)' }),
+          field('🚚 توصيل مجاني من (عدد القطع، اختياري)', fdBox, { full: true, help: 'إذا الزبون طلب هذا العدد من المنتج (كل الألوان، ويه منتجات مجموعة العرض إذا اكو)، التوصيل يصير مجاني. سعر القطعة اختياري: إذا كتبتوه، من هذا العدد كل القطع بهذا السعر (مثلاً من 4 قطع بـ 3,750) وأسعار الجملة 6+ و 12+ تبقى. فارغ = بدون. (منفصل عن "التوصيل المجاني حسب عدد القطع" للطلب كله بقسم العروض.)' }),
           field('عروض الكمية', tiersBox, { full: true, help: 'مثال: 3 قطع بـ 15,000. تنحسب باقات: 7 قطع مع عرض 3 = باقتين + قطعة بالسعر العادي. الكمية تنجمع عبر كل الألوان، وإذا وصل عرض بيه توصيل مجاني يصير التوصيل مجاني على الطلب كله.' }),
           el('div', null, el('label', { class: 'check' }, f.wholesale, 'منتج جملة (اختيار ألوان متعددة)'),
             el('div', { class: 'help', text: 'الزبون يختار أكثر من لون مرة وحدة، ولكل لون عدد.' })),
