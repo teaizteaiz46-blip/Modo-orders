@@ -1441,7 +1441,20 @@
 
     // ---- أسعار الجملة (unit_tiers): كل القطع بسعر الدرجة إذا العدد وصلها. فارغ = الخصم الافتراضي.
     const UNIT_DEFAULT = [{ min: 6, pct: 27.5 }, { min: 12, pct: 27.5 }, { min: 12, pct: 30, mix: true }];
-    const srcUnit = Array.isArray(p.unit_tiers) ? p.unit_tiers : (p.unit_tiers == null ? UNIT_DEFAULT : []);
+    // "توصيل مجاني من N قطع": درجة بـ unit_tiers بدون خصم (pct 0) عليها free_delivery.
+    // ما تغيّر السعر ولا تطلع بشريط الأسعار؛ السيرفر (private.cart_price) والتطبيق يخلون التوصيل مجاني إذا العدد وصلها.
+    const isFdTier = (t) => !!t && t.free_delivery === true && !t.mix
+      && (Number(t.pct) === 0 || (t.price != null && Number(t.price) >= Number(p.price)));
+    const fdTier = (Array.isArray(p.unit_tiers) ? p.unit_tiers : []).find(isFdTier);
+    const srcUnit = (Array.isArray(p.unit_tiers) ? p.unit_tiers : (p.unit_tiers == null ? UNIT_DEFAULT : [])).filter((t) => !isFdTier(t));
+    const fdMin = el('input', { class: 'field', type: 'number', min: 2, max: 100, step: 1, inputmode: 'numeric', dir: 'ltr', placeholder: 'مثلاً 2', style: 'max-width:140px' });
+    fdMin.value = fdTier ? fdTier.min : '';
+    function readFd() {
+      if (fdMin.value === '') return null;
+      const n = Number(fdMin.value);
+      if (!Number.isInteger(n) || n < 2 || n > 100) return 'عدد قطع التوصيل المجاني لازم من 2 إلى 100، أو اتركه فارغ';
+      return { min: n, pct: 0, free_delivery: true };
+    }
     const unitSlots = [
       { key: '6', label: '6-11 قطعة', min: 6, mix: false },
       { key: '12', label: '12+ قطعة', min: 12, mix: false },
@@ -1451,7 +1464,7 @@
       return { ...s, pct: t ? t.pct ?? null : null, price: t && t.price != null ? t.price : '', on: !!t };
     });
     const unitOff = el('input', { type: 'checkbox' });
-    unitOff.checked = Array.isArray(p.unit_tiers) && p.unit_tiers.length === 0;
+    unitOff.checked = Array.isArray(p.unit_tiers) && srcUnit.length === 0;
     const tierUnit = (base, pct) => Math.round(base * (100 - pct) / 100 / 250) * 250;
     const unitBox = el('div', { class: 'tiers' });
     const renderUnit = () => {
@@ -1527,11 +1540,22 @@
       if (typeof bulkTiers === 'string') { err.textContent = bulkTiers; return; }
       const unitTiers = readUnitTiers(price);
       if (typeof unitTiers === 'string') { err.textContent = unitTiers; return; }
+      const fdT = readFd();
+      if (typeof fdT === 'string') { err.textContent = fdT; return; }
+      // الباقات تلغي أسعار الجملة (بالتطبيق والسيرفر)، فننبه إذا الثنين موجودين
+      if (bulkTiers.length && unitTiers.length) {
+        const onlyFree = bulkTiers.every((t) => t.free_delivery && Number(t.price) >= t.qty * price);
+        const ok = await confirmDialog('عروض كمية + أسعار جملة؟',
+          'عروض الكمية (الباقات) تلغي أسعار الجملة (6-11 و 12+) لهذا المنتج، فالزبون ما راح يشوفها ولا تنحسب.'
+          + (onlyFree ? ' عرض الكمية هنا بس توصيل مجاني بنفس السعر: الأفضل تحذفونه وتكتبون العدد بخانة "توصيل مجاني من"، حتى تبقى أسعار الجملة.' : '')
+          + ' تكملون الحفظ هيج؟', 'أحفظ هيج');
+        if (!ok) return;
+      }
       const offerGroup = f.group.value.trim() || null;
       const minQty = f.minQty.value === '' ? null : Number(f.minQty.value);
       if (minQty !== null && (!Number.isInteger(minQty) || minQty < 2 || minQty > 1000)) { err.textContent = 'أقل كمية لازم رقم صحيح من 2 إلى 1000، أو اتركها فارغة'; return; }
       if (offerGroup) {
-        if (!bulkTiers.length) { err.textContent = 'مجموعة العرض تحتاج عرض كمية على المنتج'; return; }
+        if (!bulkTiers.length && !fdT && !unitTiers.length) { err.textContent = 'مجموعة العرض تحتاج عرض كمية أو أسعار جملة أو توصيل مجاني على المنتج'; return; }
         // كل منتجات المجموعة لازم نفس السعر ونفس عروض الكمية، حتى ما تختلط عروض مختلفة
         const sig = (tiers) => JSON.stringify((tiers || []).map((t) => [Number(t.qty), Number(t.price), t.free_delivery === true]).sort((a, b) => a[0] - b[0]));
         const other = adm.products.find((x) => x.id !== p.id && (x.offer_group || '').trim() === offerGroup
@@ -1568,7 +1592,7 @@
           offer_ends_at: f.offer.checked && f.ends.value ? new Date(f.ends.value).toISOString() : null,
           image_url: urls,
           bulk_tiers: bulkTiers,
-          unit_tiers: unitTiers,
+          unit_tiers: fdT ? [...unitTiers, fdT] : unitTiers,
           offer_group: offerGroup,
           is_wholesale: f.wholesale.checked,
           min_qty: minQty,
@@ -1610,6 +1634,7 @@
           field('السعر قبل الخصم', f.oldPrice, { help: 'اتركه فارغ إذا ماكو خصم.' }),
           field('الألوان', f.colors, { full: true, help: 'افصل بينها بفاصلة. إذا كتبت ألوان، الزبون لازم يختار واحد قبل الإضافة للسلة.' }),
           field('أسعار الجملة (سعر القطعة حسب العدد)', unitBox, { full: true, help: 'إذا مجموع القطع (كل الألوان) وصل 6، كل القطع تنحسب بسعر 6-11، وإذا وصل 12 بسعر 12+. "مكس" للزبونة الي تختار "مكس ألوان" (إنتو تختارون الألوان) إذا طلبت 12 أو أكثر. إذا المنتج بيه "عروض كمية" (باقات)، الباقات هي الي تنحسب بداله.' }),
+          field('🚚 توصيل مجاني من (عدد القطع، اختياري)', fdMin, { full: true, help: 'إذا الزبون طلب هذا العدد من المنتج (كل الألوان، ويه منتجات مجموعة العرض إذا اكو)، التوصيل يصير مجاني. ما يغيّر السعر ولا أسعار الجملة. فارغ = بدون. (منفصل عن "التوصيل المجاني حسب عدد القطع" للطلب كله بقسم العروض.)' }),
           field('عروض الكمية', tiersBox, { full: true, help: 'مثال: 3 قطع بـ 15,000. تنحسب باقات: 7 قطع مع عرض 3 = باقتين + قطعة بالسعر العادي. الكمية تنجمع عبر كل الألوان، وإذا وصل عرض بيه توصيل مجاني يصير التوصيل مجاني على الطلب كله.' }),
           el('div', null, el('label', { class: 'check' }, f.wholesale, 'منتج جملة (اختيار ألوان متعددة)'),
             el('div', { class: 'help', text: 'الزبون يختار أكثر من لون مرة وحدة، ولكل لون عدد.' })),
