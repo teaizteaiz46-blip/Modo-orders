@@ -451,6 +451,7 @@
   </main>
 
   <main class="wrap hidden" id="sec-offers">
+    <div class="new-clip" id="offer-settings"></div>
     <div class="new-clip" id="offer-editor"></div>
     <div id="offer-list"></div>
   </main>
@@ -2808,14 +2809,73 @@
   // توصيل مجاني: الأسعار عادية، بس إذا مجموع قطع منتجات العرض وصل N، التوصيل مجاني.
   // المنتج يدخل بعرض واحد بس. الحساب كله بالسيرفر (private.cart_price)، والعرض يلغي عروض الكمية الخاصة بالمنتج.
   const offerPieces = (n) => (n === 2 ? 'قطعتين' : n <= 10 ? n + ' قطع' : n + ' قطعة');
+  const productsCount = (n) => (n === 1 ? 'منتج واحد' : n === 2 ? 'منتجين' : n <= 10 ? n + ' منتجات' : n + ' منتج');
   const offerRule = (o) => o.kind === 'bundle'
     ? `أي ${offerPieces(o.qty)} بـ ${money(o.price)} د.ع${o.free_delivery ? ' + توصيل مجاني' : ''}`
     : `${offerPieces(o.qty)} من العرض = توصيل مجاني`;
 
   async function openOffers() {
+    loadPiecesSetting();
     if (!adm.productsLoaded) await loadProducts();
     if (!$('offer-editor').childElementCount) renderOfferEditor(null);
     loadOffers();
+  }
+
+  // توصيل مجاني للطلب كله إذا مجموع القطع وصل العدد (store_settings، يتحسب بالسيرفر بـ private.cart_price)
+  async function loadPiecesSetting() {
+    const box = $('offer-settings');
+    if (!box.childElementCount) box.replaceChildren(el('div', { class: 'muted', text: 'جاري التحميل...' }));
+    const { data, error } = await db.from('store_settings').select('free_delivery_pieces_on, free_delivery_min_pieces').eq('id', 1).maybeSingle();
+    if (error) { box.replaceChildren(el('div', { class: 'error', text: friendlyError(error) })); return; }
+    const s = data || { free_delivery_pieces_on: false, free_delivery_min_pieces: 4 };
+    const on = el('input', { type: 'checkbox' });
+    on.checked = !!s.free_delivery_pieces_on;
+    const min = el('input', { class: 'field', type: 'number', min: 2, max: 100, step: 1, value: s.free_delivery_min_pieces, style: 'max-width:110px' });
+    const status = el('div', { style: 'font-weight:800' });
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'حفظ');
+    const paint = () => {
+      const n = Math.round(Number(min.value) || 0);
+      status.textContent = s.free_delivery_pieces_on
+        ? `شغّال هسه ✅ التوصيل مجاني لأي طلب من ${offerPieces(s.free_delivery_min_pieces)} وفوگ`
+        : 'مطفي هسه، التوصيل يندفع حسب المحافظة';
+      status.style.color = s.free_delivery_pieces_on ? '#1b7f3b' : 'var(--muted)';
+      save.disabled = on.checked === !!s.free_delivery_pieces_on && n === Number(s.free_delivery_min_pieces);
+    };
+    [on, min].forEach((x) => x.addEventListener('input', paint));
+    on.addEventListener('change', paint);
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      const n = Math.round(Number(min.value) || 0);
+      if (n < 2 || n > 100) { err.textContent = 'العدد من 2 إلى 100'; return; }
+      save.disabled = true;
+      const { error: e } = await db.from('store_settings')
+        .update({ free_delivery_pieces_on: on.checked, free_delivery_min_pieces: n, updated_at: new Date().toISOString() })
+        .eq('id', 1);
+      if (e) { err.textContent = friendlyError(e); save.disabled = false; return; }
+      toast(on.checked ? `التوصيل صار مجاني من ${offerPieces(n)} ✅` : 'انطفى التوصيل المجاني حسب العدد');
+      loadPiecesSetting();
+    });
+    box.replaceChildren(
+      el('h3', { text: '🚚 توصيل مجاني حسب عدد القطع', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'إذا مجموع القطع بالطلب (من أي منتجات) وصل العدد، التوصيل يصير مجاني على الطلب كله. الأسعار ما تتغير، والهدية المجانية ما تنحسب ويه القطع. التطبيق يبينه للزبون من نسخة 2.0.3؛ النسخ القديمة ما تبينه بس السيرفر يطبقه (يعني الزبون يدفع أقل من اللي شافه).' }),
+      status,
+      el('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' },
+        el('label', { class: 'check' }, on, 'شغّال'),
+        el('span', { text: 'من' }), min, el('span', { text: 'قطع وفوگ' }),
+        save),
+      err,
+    );
+    paint();
+  }
+
+  // عرض ثاني شغّال (أو راح يبدي) بنفس القيم: الزبون ما يگدر يجمع بين عرضين منفصلين، فننبه
+  function offerTwin(row, exceptId) {
+    const now = Date.now();
+    return (adm.offers || []).find((x) => x.id !== exceptId && x.is_active
+      && !(x.ends_at && new Date(x.ends_at).getTime() <= now)
+      && x.kind === row.kind && Number(x.qty) === Number(row.qty)
+      && (row.kind !== 'bundle' || (Number(x.price) === Number(row.price) && !!x.free_delivery === !!row.free_delivery)));
   }
 
   async function loadOffers() {
@@ -2922,7 +2982,23 @@
     active.checked = o ? o.is_active : true;
     const err = el('div', { class: 'error', role: 'alert' });
     const warn = el('div', { class: 'help', style: 'color:#b26a00;font-weight:700' });
+    const twinBox = el('div', { style: 'display:none;background:#e8f1fd;border:1px solid #b6d0f5;border-radius:12px;padding:8px 10px;font-size:13px;font-weight:700;color:#1a4f8f' });
     const preview = el('div', { style: 'font-weight:800;color:#1b7f3b' });
+    const rowNow = () => {
+      const bundle = kind.value === 'bundle';
+      return { kind: kind.value, qty: Math.round(Number(qty.value) || 0), price: bundle ? Math.round(Number(price.value) || 0) : null, free_delivery: bundle ? fd.checked : true };
+    };
+    // يضيف المنتجات المختارة للعرض اللي بنفس القيم بدل عرض جديد
+    const mergeInto = async (twin) => {
+      const add = [...selected].filter((id) => !twin.products.includes(id));
+      if (add.length) {
+        const { error } = await db.from('offer_products').insert(add.map((pid) => ({ offer_id: twin.id, product_id: pid })));
+        if (error) { err.textContent = error.code === '23505' ? 'منتج من المختارة صار بعرض ثاني، حدّثوا الصفحة وجرّبوا مرة ثانية' : friendlyError(error); return; }
+      }
+      toast(add.length ? `انضاف ${productsCount(add.length)} لعرض "${twin.title}" ✅` : `المنتجات موجودة أصلاً بعرض "${twin.title}"`);
+      renderOfferEditor(null);
+      loadOffers();
+    };
     const save = el('button', { class: 'btn btn-primary', type: 'button' }, o ? 'حفظ التعديل' : 'إضافة العرض');
 
     const priceBox = el('div', null, el('label', { class: 'lbl', text: 'سعر الباقة (د.ع)' }), price);
@@ -2939,6 +3015,17 @@
       const n = Math.round(Number(qty.value) || 0);
       const pz = Number(price.value) || 0;
       preview.textContent = n >= 2 ? 'الزبون يشوف: ' + offerRule({ kind: kind.value, qty: n, price: pz, free_delivery: bundle ? fd.checked : true }) : '';
+      // عرض جديد بنفس قيم عرض موجود: ننبه ونقترح نضيف المنتجات له
+      const twin = !o && n >= 2 && (!bundle || pz > 0) ? offerTwin(rowNow(), null) : null;
+      twinBox.style.display = twin ? '' : 'none';
+      if (twin) {
+        twinBox.replaceChildren(
+          el('div', { text: `ℹ️ اكو عرض بنفس القيم: "${twin.title}" (${productsCount(twin.products.length)}). إذا تسوون عرض جديد، الزبون ما يگدر يجمع قطع من العرضين سوى. حتى يتجمعن، ضيفوا المنتجات لذاك العرض.` }),
+          selected.size
+            ? el('button', { class: 'btn btn-sm', type: 'button', style: 'margin-top:6px', onclick: () => mergeInto(twin) }, `ضيف المنتجات المختارة لـ "${twin.title}"`)
+            : null,
+        );
+      }
       // تنبيه: إذا سعر القطعة بالباقة أغلى من سعر منتج عادي، الزبون يدفع أكثر
       warn.textContent = '';
       if (bundle && n >= 2 && pz > 0 && selected.size) {
@@ -2988,6 +3075,13 @@
       if (bundle && pz <= 0) { err.textContent = 'اكتبوا سعر الباقة'; return; }
       if (!selected.size) { err.textContent = 'ضيفوا منتج واحد على الأقل للعرض'; return; }
       if (starts.value && ends.value && new Date(ends.value) <= new Date(starts.value)) { err.textContent = 'النهاية لازم بعد البداية'; return; }
+      if (!o) {
+        const twin = offerTwin(rowNow(), null);
+        if (twin && confirm(`اكو عرض بنفس القيم: "${twin.title}".\nإذا تسوون عرض جديد منفصل، الزبون ما يگدر يجمع قطع من العرضين سوى.\n\nموافق = نضيف المنتجات المختارة لعرض "${twin.title}"\nإلغاء = نسوي عرض جديد منفصل`)) {
+          await mergeInto(twin);
+          return;
+        }
+      }
       if (warn.textContent && !confirm(warn.textContent + '\n\nتكمل وتحفظ؟')) return;
       const row = {
         title: title.value.trim(),
@@ -3042,6 +3136,7 @@
         priceBox,
         fdBox,
         el('div', { class: 'full' }, preview),
+        el('div', { class: 'full' }, twinBox),
         el('div', { class: 'full' }, el('label', { class: 'lbl', text: `منتجات العرض` }), chips, search, results, warn),
         el('div', null, el('label', { class: 'lbl', text: 'يبدي (اختياري)' }), starts),
         el('div', null, el('label', { class: 'lbl', text: 'ينتهي (اختياري)' }), ends),
