@@ -442,6 +442,7 @@
   </main>
 
   <main class="wrap hidden" id="sec-influencers">
+    <div id="inf-apps"></div>
     <div class="new-clip" id="inf-editor"></div>
     <div id="inf-list"></div>
   </main>
@@ -2561,6 +2562,58 @@
   function openInfluencers() {
     if (!$('inf-editor').childElementCount) renderInfluencerEditor(null);
     loadInfluencers();
+    loadInfluencerApps();
+  }
+
+  // ---- طلبات الانضمام من التطبيق (influencer_applications) ----
+  // القبول يفتح فورم المؤثر معبّى، وبعد الحفظ ينربط الحساب والطلب يصير approved.
+  async function loadInfluencerApps() {
+    const { data, error } = await db.from('influencer_applications').select('*').order('created_at', { ascending: false }).limit(200);
+    if (error) { $('inf-apps').replaceChildren(el('div', { class: 'error', text: friendlyError(error) })); return; }
+    adm.infApps = data || [];
+    renderInfluencerApps();
+  }
+
+  function renderInfluencerApps() {
+    const pending = (adm.infApps || []).filter((a) => a.status === 'pending');
+    const rejected = (adm.infApps || []).filter((a) => a.status === 'rejected').length;
+    if (!pending.length) {
+      $('inf-apps').replaceChildren(el('div', { class: 'help', style: 'margin:0 0 12px', text: `طلبات الانضمام من التطبيق: ماكو طلبات جديدة.${rejected ? ` (المرفوضة: ${rejected})` : ''}` }));
+      return;
+    }
+    $('inf-apps').replaceChildren(
+      el('h3', { text: `طلبات الانضمام (${pending.length})`, style: 'margin:6px 0 10px' }),
+      ...pending.map((a) => {
+        const reject = el('button', { class: 'btn btn-sm', type: 'button', style: 'color:var(--danger, #c62828)' }, 'رفض');
+        reject.addEventListener('click', async () => {
+          const ok = await confirmDialog('رفض الطلب؟', `طلب ${a.name}. يشوف بالتطبيق إن طلبه ما انقبل، ويگدر يقدم مرة ثانية بعد أسبوع.`, 'رفض');
+          if (!ok) return;
+          reject.disabled = true;
+          const { error } = await db.from('influencer_applications').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', a.id);
+          if (error) { toast(friendlyError(error), true); reject.disabled = false; return; }
+          toast('انرفض الطلب');
+          loadInfluencerApps();
+        });
+        const social = /^https?:\/\//i.test(a.social_url || '') ? a.social_url : 'https://' + (a.social_url || '');
+        return el('div', { class: 'inf-card' },
+          el('div', { class: 'inf-head' },
+            el('span', { class: 'prod-name', text: a.name }),
+            el('span', { class: 'badge orange', text: 'قيد المراجعة' }),
+            el('span', { class: 'spacer' }),
+            el('span', { class: 'help', style: 'margin:0', text: new Date(a.created_at).toLocaleString('en-GB') }),
+          ),
+          el('div', { class: 'help', style: 'margin:0;line-height:1.9' },
+            el('div', { text: `📞 ${a.phone} · ✉️ ${a.email || '—'}` }),
+            el('div', null, '🔗 ', el('a', { href: social, target: '_blank', rel: 'noopener', dir: 'ltr', text: a.social_url })),
+            a.followers != null ? el('div', { text: `👥 المتابعين تقريباً: ${money(a.followers)}` }) : null,
+            a.note ? el('div', { text: '📝 ' + a.note }) : null,
+          ),
+          el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
+            el('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: () => { renderInfluencerEditor(null, a); $('inf-editor').scrollIntoView({ behavior: 'smooth' }); } }, 'قبول'),
+            reject),
+        );
+      }),
+    );
   }
 
   async function loadInfluencers() {
@@ -2616,6 +2669,7 @@
         el('span', { class: 'prod-name', text: inf.name }),
         el('span', { class: 'badge orange num', text: inf.code }),
         el('span', { class: 'badge ' + (inf.active ? 'green' : 'red'), text: inf.active ? 'فعّال' : 'موقوف' }),
+        el('span', { class: 'badge', title: inf.account_email || '', text: inf.account_email ? '📱 مربوط بحساب' : 'مو مربوط بحساب' }),
         el('span', { class: 'spacer' }),
         el('span', { class: 'help', style: 'margin:0', text: `خصم الزبون ${money(inf.discount)} · العمولة ${money(inf.commission)} د.ع` }),
       ),
@@ -2630,6 +2684,7 @@
         infStat('الباقي إله', money(balance), 'due'),
       ),
       inf.note ? el('div', { class: 'help', style: 'margin:0', text: '📝 ' + inf.note }) : null,
+      inf.account_email ? el('div', { class: 'help', style: 'margin:0', text: '📱 حساب التطبيق: ' + inf.account_email + ' (يشوف "أرباحي" بالتطبيق)' }) : null,
       el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
         el('button', { class: 'btn btn-sm', type: 'button', onclick: () => copyText(links.ad, 'انتسخ رابط الإعلان') }, 'نسخ رابط الإعلان'),
         el('button', { class: 'btn btn-sm', type: 'button', onclick: () => copyText(links.dashboard, 'انتسخ رابط صفحة المؤثر') }, 'نسخ رابط صفحته'),
@@ -2640,13 +2695,17 @@
     );
   }
 
-  function renderInfluencerEditor(inf) {
+  // app = طلب انضمام (عند القبول): الفورم يتعبى بالاسم والرقم، وبعد الحفظ ينربط حسابه
+  function renderInfluencerEditor(inf, app = null) {
     const box = $('inf-editor');
-    const name = el('input', { class: 'field', maxlength: 60, placeholder: 'مثال: زينب', value: inf ? inf.name : '' });
+    const name = el('input', { class: 'field', maxlength: 60, placeholder: 'مثال: زينب', value: inf ? inf.name : app ? app.name : '' });
+    const email = el('input', { class: 'field', type: 'email', dir: 'ltr', placeholder: 'name@example.com',
+      value: inf ? inf.account_email || '' : app ? app.email || '' : '' });
+    if (app) email.disabled = true;
     const code = el('input', { class: 'field num', maxlength: 20, dir: 'ltr', placeholder: 'مثال: ZAINAB', style: 'text-transform:uppercase', value: inf ? inf.code : '' });
     const discount = el('input', { class: 'field', type: 'number', min: 1500, step: 500, value: inf ? inf.discount : 2000 });
     const commission = el('input', { class: 'field', type: 'number', min: 0, step: 250, value: inf ? inf.commission : 500 });
-    const phone = el('input', { class: 'field num', type: 'tel', dir: 'ltr', placeholder: '07xxxxxxxxx', value: inf ? inf.phone || '' : '' });
+    const phone = el('input', { class: 'field num', type: 'tel', dir: 'ltr', placeholder: '07xxxxxxxxx', value: inf ? inf.phone || '' : app ? app.phone || '' : '' });
     const note = el('input', { class: 'field', maxlength: 200, placeholder: 'مثال: 50 ألف على ستوريين', value: inf ? inf.note || '' : '' });
     const active = el('input', { type: 'checkbox' });
     active.checked = inf ? inf.active : true;
@@ -2660,8 +2719,10 @@
       if (!/^[A-Z0-9]{3,20}$/.test(c)) { err.textContent = 'الكود من 3 لـ 20 حرف إنكليزي أو رقم، بدون فراغات'; return; }
       // لازم أكثر من كود الترحيب (MODONEW = 1,000) حتى المتابعين يحسون بقيمة كود المؤثر
       if (!(Number(discount.value) > 1000)) { err.textContent = 'خصم المؤثر لازم أكثر من خصم الترحيب (1,000 د.ع)'; return; }
+      const mail = email.value.trim().toLowerCase();
+      if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { err.textContent = 'إيميل حساب التطبيق غير صحيح'; return; }
       save.disabled = true;
-      const { error } = await db.rpc('admin_save_influencer', {
+      const { data, error } = await db.rpc('admin_save_influencer', {
         p_id: inf ? inf.id : null,
         p_name: name.value.trim(),
         p_code: c,
@@ -2671,15 +2732,31 @@
         p_active: active.checked,
         p_note: note.value.trim() || null,
       });
+      if (error) { save.disabled = false; err.textContent = friendlyError(error); return; }
+      // ربط حساب التطبيق: من طلب الانضمام، أو بالإيميل إذا تغيّر (فارغ = فك الربط)
+      const id = (data && data.id) || (inf && inf.id);
+      const before = ((inf && inf.account_email) || '').toLowerCase();
+      if (id && (app || mail !== before)) {
+        const { error: linkErr } = await db.rpc('admin_link_influencer_account', {
+          p_influencer_id: id, p_email: app ? null : mail, p_application_id: app ? app.id : null,
+        });
+        if (linkErr) {
+          save.disabled = false;
+          err.textContent = 'انحفظ المؤثر، بس الربط بحساب التطبيق ما صار: ' + friendlyError(linkErr);
+          loadInfluencers();
+          return;
+        }
+      }
       save.disabled = false;
-      if (error) { err.textContent = friendlyError(error); return; }
-      toast(inf ? 'انحفظ التعديل ✅' : 'انضاف المؤثر ✅');
+      toast(app ? 'انقبل الطلب وانربط الحساب ✅' : inf ? 'انحفظ التعديل ✅' : 'انضاف المؤثر ✅');
       renderInfluencerEditor(null);
       loadInfluencers();
+      if (app) loadInfluencerApps();
     });
 
     box.replaceChildren(
-      el('h3', { text: inf ? 'تعديل ' + inf.name : 'مؤثر جديد', style: 'margin:0' }),
+      el('h3', { text: inf ? 'تعديل ' + inf.name : app ? 'قبول طلب ' + app.name : 'مؤثر جديد', style: 'margin:0' }),
+      app ? el('div', { class: 'help', style: 'color:#1b7f3b;font-weight:700', text: 'اكتبوا الكود والخصم والعمولة واحفظوا: ينضاف المؤثر وينربط حسابه بالتطبيق، ويشوف "أرباحي" بصفحة حسابه.' }) : null,
       el('div', { class: 'help', text: 'الزبون يكتب الكود بخانة كود الخصم بالتطبيق، ويشتغل لأول طلب إله بس. العمولة تنحسب لما الطلب يصير "مكتمل"، وتغييرها يمشي على الطلبات الجاية.' }),
       el('div', { class: 'form-grid' },
         el('div', null, el('label', { class: 'lbl', text: 'اسم المؤثر' }), name),
@@ -2690,12 +2767,14 @@
         el('div', null, el('label', { class: 'lbl', text: 'رقم المؤثر (اختياري)' }), phone,
           el('div', { class: 'help', text: 'طلباته هو بكوده ما تنحسب.' })),
         el('div', null, el('label', { class: 'lbl', text: 'ملاحظة (الاتفاق)' }), note),
+        el('div', null, el('label', { class: 'lbl', text: 'إيميل حساب التطبيق (اختياري)' }), email,
+          el('div', { class: 'help', text: app ? 'من طلب الانضمام، ينربط تلقائياً.' : 'إذا المؤثر عنده حساب بالتطبيق، اكتبوا إيميله حتى يشوف "أرباحي". امسحوه حتى تفكون الربط.' })),
         el('label', { class: 'check full' }, active, 'فعّال (إذا انطفى، الكود يوقف بالتطبيق)'),
       ),
       err,
       el('div', { style: 'display:flex;gap:8px' },
         save,
-        inf ? el('button', { class: 'btn', type: 'button', onclick: () => renderInfluencerEditor(null) }, 'إلغاء') : null,
+        inf || app ? el('button', { class: 'btn', type: 'button', onclick: () => renderInfluencerEditor(null) }, 'إلغاء') : null,
       ),
     );
   }
@@ -3327,7 +3406,9 @@
     $('look-editor').replaceChildren();
     $('story-editor').replaceChildren();
     $('inf-editor').replaceChildren();
+    $('inf-apps').replaceChildren();
     adm.influencers = [];
+    adm.infApps = [];
     showSection('orders');
     closeDetail();
     showLogin();
