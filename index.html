@@ -363,6 +363,7 @@
       <button type="button" data-section="influencers" aria-pressed="false">المؤثرين</button>
       <button type="button" data-section="gifts" aria-pressed="false">الهدايا 🎁</button>
       <button type="button" data-section="offers" aria-pressed="false">العروض 🏷️</button>
+      <button type="button" data-section="appui" aria-pressed="false">واجهة التطبيق 📱</button>
     </nav>
   </header>
 
@@ -454,6 +455,11 @@
     <div class="new-clip" id="offer-settings"></div>
     <div class="new-clip" id="offer-editor"></div>
     <div id="offer-list"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-appui">
+    <div class="new-clip" id="appui-home"></div>
+    <div class="new-clip" id="appui-update"></div>
   </main>
 </div>
 
@@ -1201,7 +1207,7 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts', 'offers'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts', 'offers', 'appui'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
@@ -1213,6 +1219,7 @@
     if (name === 'influencers') openInfluencers();
     if (name === 'gifts') openGifts();
     if (name === 'offers') openOffers();
+    if (name === 'appui') openAppUi();
     window.scrollTo(0, 0);
   }
 
@@ -3193,6 +3200,106 @@
       ),
     );
     refresh();
+  }
+
+  // ================= واجهة التطبيق =================
+  // store_settings (صف واحد): الرئيسية الافتراضية (القسم والترتيب) والتحديث الإجباري. التطبيق يقراها من نسخة 2.0.5.
+  const HOME_SORTS = [
+    ['bestSelling', 'الأكثر مبيعاً'],
+    ['newest', 'الأحدث'],
+    ['cheapest', 'الأرخص'],
+    ['bulkOffers', 'عروض الكمية'],
+  ];
+
+  async function openAppUi() {
+    $('appui-home').replaceChildren(el('div', { class: 'muted', text: 'جاري التحميل...' }));
+    $('appui-update').replaceChildren();
+    if (!adm.categories.length) await loadCategories();
+    const { data, error } = await db.from('store_settings').select('*').eq('id', 1).maybeSingle();
+    if (error) { $('appui-home').replaceChildren(el('div', { class: 'error', text: friendlyError(error) })); return; }
+    const s = data || {};
+    renderAppUiHome(s);
+    renderAppUiUpdate(s);
+  }
+
+  function renderAppUiHome(s) {
+    const curCat = Number(s.home_default_category ?? 0);
+    const curSort = s.home_default_sort || 'bestSelling';
+    const cat = el('select', { class: 'field' },
+      el('option', { value: '0', text: 'الكل' }),
+      ...adm.categories.map((c) => el('option', { value: c.id, text: c.name })));
+    cat.value = String(curCat);
+    const sorts = HOME_SORTS.some(([k]) => k === curSort) ? HOME_SORTS : [...HOME_SORTS, [curSort, 'عشوائي']];
+    const sort = el('select', { class: 'field' }, ...sorts.map(([k, label]) => el('option', { value: k, text: label })));
+    sort.value = curSort;
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, 'حفظ');
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      save.disabled = true;
+      const row = { home_default_category: Number(cat.value) || 0, home_default_sort: sort.value, updated_at: new Date().toISOString() };
+      const { error } = await db.from('store_settings').update(row).eq('id', 1);
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      const catName = row.home_default_category ? (adm.categories.find((c) => c.id === row.home_default_category) || {}).name : 'الكل';
+      const sortName = (HOME_SORTS.find(([k]) => k === row.home_default_sort) || [, 'عشوائي'])[1];
+      toast(`انحفظ ✅ الرئيسية تفتح على: ${catName} · ${sortName}`);
+    });
+    $('appui-home').replaceChildren(
+      el('h3', { text: '🏠 الرئيسية أول ما ينفتح التطبيق', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'القسم والترتيب اللي تبين بالرئيسية أول ما الزبون يفتح التطبيق. الزبون يگدر يغيّرهم عادي. إذا القسم المختار ما بيه منتجات متوفرة، التطبيق يرجع لـ "الكل". يشتغل من نسخة 2.0.5 وفوگ؛ النسخ الأقدم تبقى على "الكل + الأكثر مبيعاً".' }),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'القسم' }), cat),
+        el('div', null, el('label', { class: 'lbl', text: 'الترتيب' }), sort),
+      ),
+      err,
+      el('div', null, save),
+    );
+  }
+
+  function renderAppUiUpdate(s) {
+    const on = el('input', { type: 'checkbox' });
+    on.checked = s.force_update_on === true;
+    const minA = el('input', { class: 'field', type: 'number', min: 1, step: 1, dir: 'ltr', placeholder: 'فارغ', value: s.min_build_android ?? '' });
+    const minI = el('input', { class: 'field', type: 'number', min: 1, step: 1, dir: 'ltr', placeholder: 'فارغ', value: s.min_build_ios ?? '' });
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, 'حفظ');
+    const readMin = (input, label) => {
+      if (input.value === '') return null;
+      const n = Number(input.value);
+      if (!Number.isInteger(n) || n < 1) throw new Error(`رقم البناء لـ ${label} لازم رقم صحيح، أو اتركه فارغ`);
+      return n;
+    };
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      let row;
+      try {
+        row = { force_update_on: on.checked, min_build_android: readMin(minA, 'أندرويد'), min_build_ios: readMin(minI, 'آيفون'), updated_at: new Date().toISOString() };
+      } catch (e) { err.textContent = e.message; return; }
+      if ((row.min_build_android || row.min_build_ios)
+        && !confirm('تأكدتوا إن رقم البناء هذا نازل بالمتجر وموافق عليه؟\nإذا كتبتوا رقم أعلى من اللي بالمتجر، الزبائن ينحبسون بشاشة التحديث وما يلگون تحديث.')) return;
+      save.disabled = true;
+      const { error } = await db.from('store_settings').update(row).eq('id', 1);
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      toast(row.force_update_on ? 'انحفظ ✅ الزبائن ينجبرون على آخر نسخة' : 'انحفظ ✅ التحديث الإجباري مطفي');
+    });
+    $('appui-update').replaceChildren(
+      el('h3', { text: '⬆️ التحديث الإجباري', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'إذا شغّال: كل ما تنزل نسخة جديدة بالمتجر، الزبون اللي عنده نسخة أقدم تطلعله شاشة "حدّثوا الآن" ما تتسكر لحد ما يحدّث. أندرويد يحدّث من داخل التطبيق (Google Play)، وآيفون يوديه للـ App Store. يشتغل على النسخ اللي بيها هالميزة (2.0.5 وفوگ)، فالزبائن اللي عدهم نسخة أقدم لازم يحدّثون مرة وحدة بنفسهم.' }),
+      el('label', { class: 'check' }, on, 'إجبار الزبائن على آخر نسخة من المتجر'),
+      el('div', { class: 'help', style: 'color:#b26a00;font-weight:700', text: '⚠️ إذا Google Play ينشر النسخة تدريجياً (Staged rollout)، اللي ما وصلته بعد ما ينجبر لحد ما توصله. وآيفون ممكن يتأخر لحد يوم بعد نزول النسخة بالـ App Store.' }),
+      el('details', null,
+        el('summary', { style: 'cursor:pointer;font-weight:700;margin-top:6px', text: 'احتياط: أقل رقم بناء مسموح (اختياري)' }),
+        el('div', { class: 'help', text: 'أي نسخة رقم بنائها أقل من هذا الرقم تنجبر تحدّث، حتى لو الإجبار فوگ مطفي. اكتبوا بس رقم نسخة نازلة بالمتجر.' }),
+        el('div', { class: 'form-grid' },
+          el('div', null, el('label', { class: 'lbl', text: 'أندرويد (رقم البناء)' }), minA),
+          el('div', null, el('label', { class: 'lbl', text: 'آيفون (رقم البناء)' }), minI),
+        ),
+      ),
+      err,
+      el('div', null, save),
+    );
   }
 
   // ================= الأحداث =================
