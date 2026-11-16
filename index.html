@@ -283,6 +283,44 @@
     dialog.sheet { width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0; border-radius: 0; }
     .clip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
+
+  /* ---- الدردشة (بدل تيليگرام) ---- */
+  .chat-wrap { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 12px; height: calc(100vh - 170px); min-height: 420px; }
+  .chat-threads, .chat-view { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  .chat-threads .chat-list { overflow-y: auto; flex: 1; }
+  .chat-thread { display: grid; gap: 2px; padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .chat-thread:hover { background: #FAF7F4; }
+  .chat-thread.on { background: var(--brand-soft); }
+  .chat-thread .t1 { display: flex; gap: 6px; align-items: center; font-weight: 800; }
+  .chat-thread .t2 { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-thread .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--brand); flex: none; }
+  .chat-head { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .chat-msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #FBF9F7; }
+  .bubble { max-width: 78%; padding: 8px 12px; border-radius: 14px; white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-size: 14px; }
+  .bubble.cust { align-self: flex-start; background: #fff; border: 1px solid var(--line); }
+  .bubble.staff { align-self: flex-end; background: var(--brand-soft); border: 1px solid #F6D3BF; }
+  .bubble.report { align-self: center; background: var(--danger-soft); color: var(--danger); font-weight: 700; }
+  .bubble .meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .bubble .prod { display: flex; gap: 8px; align-items: center; text-decoration: none; color: inherit; }
+  .bubble .prod img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; flex: none; }
+  .chat-compose { border-top: 1px solid var(--line); padding: 8px; display: grid; gap: 6px; }
+  .chat-compose .row { display: flex; gap: 6px; align-items: flex-end; }
+  .chat-compose textarea { flex: 1; min-height: 44px; max-height: 140px; resize: vertical; }
+  .chat-picker { max-height: 260px; overflow-y: auto; display: grid; gap: 4px; }
+  .chat-picker .pi { display: flex; gap: 8px; align-items: center; padding: 4px; border-radius: 10px; cursor: pointer; }
+  .chat-picker .pi:hover { background: #FAF7F4; }
+  .chat-picker img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex: none; }
+  .chat-imgs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chat-imgs img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid transparent; }
+  .chat-imgs img:hover { border-color: var(--brand); }
+  .chat-empty { margin: auto; color: var(--muted); padding: 20px; text-align: center; }
+  .nav-count { display: inline-block; min-width: 18px; padding: 0 5px; margin-inline-start: 4px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+  @media (max-width: 979px) {
+    .chat-wrap { grid-template-columns: minmax(0, 1fr); height: calc(100vh - 150px); }
+    .chat-wrap.viewing .chat-threads { display: none; }
+    .chat-wrap:not(.viewing) .chat-view { display: none; }
+    .bubble { max-width: 88%; }
+  }
 </style>
 </head>
 <body>
@@ -354,6 +392,7 @@
     </div>
     <nav class="section-nav" aria-label="أقسام اللوحة">
       <button type="button" data-section="orders" aria-pressed="true">الطلبات</button>
+      <button type="button" data-section="chat" aria-pressed="false">الدردشة 💬<span id="chat-count" class="nav-count hidden"></span></button>
       <button type="button" data-section="products" aria-pressed="false">المنتجات</button>
       <button type="button" data-section="clips" aria-pressed="false">المقاطع</button>
       <button type="button" data-section="push" aria-pressed="false">الإشعارات</button>
@@ -458,7 +497,18 @@
     <div id="offer-list"></div>
   </main>
 
+  <main class="wrap hidden" id="sec-chat">
+    <div class="chat-wrap" id="chat-wrap">
+      <div class="chat-threads">
+        <div class="chat-head"><b style="flex:1">المحادثات</b><span class="help" style="margin:0" id="chat-sync"></span></div>
+        <div class="chat-list" id="chat-threads"></div>
+      </div>
+      <div class="chat-view" id="chat-view"><div class="chat-empty">اختاروا محادثة من القائمة</div></div>
+    </div>
+  </main>
+
   <main class="wrap hidden" id="sec-appui">
+    <div class="new-clip" id="appui-staff"></div>
     <div class="new-clip" id="appui-home"></div>
     <div class="new-clip" id="appui-update"></div>
   </main>
@@ -1112,12 +1162,17 @@
 
   // ================= الجلسة =================
   async function showApp() {
-    const { data: isAdmin, error } = await db.rpc('is_modo_admin');
-    if (error || !isAdmin) {
+    // admin = كل الأقسام، staff (موظف) = الطلبات والدردشة بس
+    const { data: role, error } = await db.rpc('my_staff_role');
+    if (error || !role) {
       await db.auth.signOut();
       showLogin(error ? friendlyError(error) : 'هذا الحساب ما عنده صلاحية على لوحة الطلبات');
       return;
     }
+    adm.role = role;
+    document.querySelectorAll('.section-nav button').forEach((b) => {
+      b.classList.toggle('hidden', role !== 'admin' && !['orders', 'chat'].includes(b.dataset.section));
+    });
     $('login').classList.add('hidden');
     $('app').classList.remove('hidden');
     updateNotifyBtn();
@@ -1125,7 +1180,35 @@
     await loadOrders();
     clearInterval(state.pollTimer);
     state.pollTimer = setInterval(() => { if (!document.hidden) pollNew(); }, POLL_MS);
+    // المحادثات: عدد اللي تنتظر رد + تنبيه من يراسل زبون
+    chat.primed = false;
+    chatPoll();
+    clearInterval(chat.listTimer);
+    chat.listTimer = setInterval(() => { if (!document.hidden) chatPoll(); }, 15000);
+    handleDeepLink();
   }
+
+  // روابط إشعارات الموظفين: #order=123 يفتح الطلب، #chat=45 يفتح المحادثة
+  function handleDeepLink() {
+    const m = location.hash.match(/^#(order|chat)=(\d+)$/);
+    if (!m) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    const id = Number(m[2]);
+    if (m[1] === 'chat') { chat.openId = id; showSection('chat'); return; }
+    openOrderById(id);
+  }
+
+  async function openOrderById(id) {
+    showSection('orders');
+    if (!state.orders.some((o) => o.id === id)) {
+      const { data } = await db.from('orders').select(ORDER_COLUMNS).eq('id', id).maybeSingle();
+      if (!data) { toast('الطلب غير موجود', true); return; }
+      state.orders = [data, ...state.orders];
+      renderAll();
+    }
+    selectOrder(id);
+  }
+  window.addEventListener('hashchange', () => { if (!$('app').classList.contains('hidden')) handleDeepLink(); });
 
   function clearAuthHash() {
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
@@ -1182,6 +1265,7 @@
 
   function showLogin(message = '') {
     clearInterval(state.pollTimer);
+    if (typeof chat !== 'undefined') { clearInterval(chat.listTimer); stopThreadPoll(); }
     $('app').classList.add('hidden');
     $('recovery').classList.add('hidden');
     $('login').classList.remove('hidden');
@@ -1208,7 +1292,7 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts', 'offers', 'appui'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'chat', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts', 'offers', 'appui'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
@@ -1221,6 +1305,7 @@
     if (name === 'gifts') openGifts();
     if (name === 'offers') openOffers();
     if (name === 'appui') openAppUi();
+    if (name === 'chat') openChat(); else stopThreadPoll();
     window.scrollTo(0, 0);
   }
 
@@ -3291,6 +3376,7 @@
   ];
 
   async function openAppUi() {
+    renderStaffCard();
     $('appui-home').replaceChildren(el('div', { class: 'muted', text: 'جاري التحميل...' }));
     $('appui-update').replaceChildren();
     if (!adm.categories.length) await loadCategories();
@@ -3381,6 +3467,251 @@
     );
   }
 
+  // ================= الدردشة (بدل تيليگرام) =================
+  // الموظف يرد على الزبون من هنا: نص أو كارت منتج. الرد يوصل للزبون بالتطبيق + إشعار، ونسخة بموضوعه بتيليگرام.
+  const chat = { threads: [], openId: null, msgs: [], lastId: 0, thread: null, listTimer: null, threadTimer: null,
+    primed: false, lastCustomerAt: '', products: null, picking: null };
+  const chatAgo = (iso) => {
+    if (!iso) return '';
+    const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 1) return 'هسه';
+    if (m < 60) return `${m} د`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h} س`;
+    return new Date(iso).toLocaleDateString('en-GB');
+  };
+
+  // كل 15 ثانية: القائمة + عدد اللي تنتظر رد + تنبيه إذا زبون راسل
+  async function chatPoll() {
+    const { data, error } = await db.rpc('admin_chat_threads', { p_limit: 120 });
+    if (error) return;
+    chat.threads = data || [];
+    const waiting = chat.threads.filter((t) => t.needs_reply && !t.blocked).length;
+    const badge = $('chat-count');
+    badge.textContent = waiting;
+    badge.classList.toggle('hidden', !waiting);
+    const newest = chat.threads.reduce((m, t) => (t.last_customer_at && t.last_customer_at > m ? t.last_customer_at : m), '');
+    if (chat.primed && newest > chat.lastCustomerAt) {
+      const t = chat.threads.find((x) => x.last_customer_at === newest);
+      const text = t ? `زبون ${t.id}: ${(t.last && t.last.text) || ''}` : 'رسالة جديدة';
+      beep();
+      if (adm.section !== 'chat' || chat.openId !== (t && t.id)) toast('💬 ' + text);
+      if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        try { new Notification('MODO - رسالة زبون', { body: text, tag: 'modo-chat' }); } catch { /* تجاهل */ }
+      }
+    }
+    chat.lastCustomerAt = newest > chat.lastCustomerAt ? newest : chat.lastCustomerAt;
+    chat.primed = true;
+    $('chat-sync').textContent = 'آخر تحديث ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    if (adm.section === 'chat') renderChatThreads();
+  }
+
+  async function openChat() {
+    if (!chat.primed) await chatPoll();
+    renderChatThreads();
+    if (chat.openId) openThread(chat.openId);
+  }
+
+  function stopThreadPoll() { clearInterval(chat.threadTimer); chat.threadTimer = null; }
+
+  function renderChatThreads() {
+    const list = chat.threads;
+    if (!list.length) {
+      $('chat-threads').replaceChildren(el('div', { class: 'chat-empty', text: 'ماكو محادثات لحد هسه' }));
+      return;
+    }
+    $('chat-threads').replaceChildren(...list.map((t) => {
+      const last = t.last || {};
+      const who = last.sender === 'staff' ? 'أنتو: ' : last.sender === 'report' ? '⚠️ ' : '';
+      return el('div', { class: 'chat-thread' + (t.id === chat.openId ? ' on' : ''), onclick: () => openThread(t.id) },
+        el('div', { class: 't1' },
+          t.needs_reply && !t.blocked ? el('span', { class: 'dot', title: 'بانتظار رد' }) : null,
+          el('span', { text: `زبون ${t.id}` }),
+          el('span', { class: 'badge', text: t.registered ? 'حساب' : 'ضيف' }),
+          t.platform ? el('span', { class: 'badge', text: t.platform === 'ios' ? 'آيفون' : 'أندرويد' }) : null,
+          t.blocked ? el('span', { class: 'badge red', text: 'محظور' }) : null,
+          el('span', { class: 'spacer', style: 'flex:1' }),
+          el('span', { class: 'help', style: 'margin:0', text: chatAgo(last.at || t.last_at) }),
+        ),
+        el('div', { class: 't2', text: who + (last.text || '') }),
+      );
+    }));
+  }
+
+  async function openThread(id) {
+    chat.openId = id;
+    chat.msgs = [];
+    chat.lastId = 0;
+    chat.picking = null;
+    $('chat-wrap').classList.add('viewing');
+    renderChatThreads();
+    $('chat-view').replaceChildren(el('div', { class: 'chat-empty', text: 'جاري التحميل...' }));
+    await loadThreadMsgs(true);
+    stopThreadPoll();
+    chat.threadTimer = setInterval(() => { if (adm.section === 'chat' && !document.hidden) loadThreadMsgs(false); }, 4000);
+  }
+
+  async function loadThreadMsgs(full) {
+    const id = chat.openId;
+    if (!id) return;
+    const { data, error } = await db.rpc('admin_chat_messages', { p_thread_id: id, p_after_id: full ? 0 : chat.lastId });
+    if (id !== chat.openId) return;
+    if (error) { $('chat-view').replaceChildren(el('div', { class: 'chat-empty error', text: friendlyError(error) })); stopThreadPoll(); return; }
+    const fresh = data.messages || [];
+    chat.thread = data.thread;
+    if (full) chat.msgs = fresh; else chat.msgs = chat.msgs.concat(fresh);
+    if (fresh.length) chat.lastId = fresh[fresh.length - 1].id;
+    if (full || fresh.length || !$('chat-msgs')) renderThread(full || fresh.length > 0);
+  }
+
+  function renderBubble(m) {
+    const cls = m.sender === 'staff' ? 'staff' : m.sender === 'report' ? 'report' : 'cust';
+    const time = new Date(m.at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const p = m.product;
+    return el('div', { class: 'bubble ' + cls },
+      m.sender === 'report' ? '⚠️ الزبون بلّغ عن المحادثة: ' : null,
+      p ? el('a', { class: 'prod', href: `p.html?id=${p.id}`, target: '_blank', rel: 'noopener' },
+            p.image ? el('img', { src: p.image, alt: '' }) : null,
+            el('div', null,
+              el('div', { style: 'font-weight:800', text: p.name }),
+              el('div', { class: 'help', style: 'margin:0', text: `${money(p.price)} د.ع · #${p.id}${Number(p.stock) > 0 ? '' : ' · ⚠️ نفد'}` }))) : null,
+      m.body ? el('div', { text: m.body }) : null,
+      el('div', { class: 'meta', text: (m.sender === 'staff' ? (m.staff || 'MODO') + ' · ' : '') + time }),
+    );
+  }
+
+  function renderThread(scroll) {
+    const t = chat.thread || {};
+    const box = $('chat-view');
+    const keepText = $('chat-text') ? $('chat-text').value : '';
+    const prevScroll = $('chat-msgs') ? $('chat-msgs').scrollTop : 0;
+    const msgs = el('div', { class: 'chat-msgs', id: 'chat-msgs' },
+      ...(chat.msgs.length ? chat.msgs.map(renderBubble) : [el('div', { class: 'chat-empty', text: 'ماكو رسائل' })]));
+    const block = el('button', { class: 'btn btn-sm', type: 'button', style: t.blocked ? '' : 'color:var(--danger, #c62828)' }, t.blocked ? 'فك الحظر' : 'حظر');
+    block.addEventListener('click', async () => {
+      if (!t.blocked && !(await confirmDialog('حظر الزبون؟', 'ما يگدر يرسل رسائل بعد، وتگدرون تفكون الحظر بأي وقت.', 'حظر'))) return;
+      const { error } = await db.rpc('admin_chat_block', { p_thread_id: t.id, p_blocked: !t.blocked });
+      if (error) { toast(friendlyError(error), true); return; }
+      toast(t.blocked ? 'انفك الحظر' : 'انحظر الزبون');
+      await loadThreadMsgs(true);
+      chatPoll();
+    });
+    box.replaceChildren(
+      el('div', { class: 'chat-head' },
+        el('button', { class: 'btn btn-ghost btn-sm', type: 'button', 'aria-label': 'رجوع', onclick: () => { $('chat-wrap').classList.remove('viewing'); } }, '→'),
+        el('b', { style: 'flex:1', text: `زبون ${t.id} · ${t.registered ? 'عنده حساب' : 'ضيف'}${t.platform ? ' · ' + (t.platform === 'ios' ? 'آيفون' : 'أندرويد') : ''}` }),
+        block),
+      msgs,
+      t.blocked ? el('div', { class: 'chat-compose' }, el('div', { class: 'help', text: '🚫 الزبون محظور. فكوا الحظر حتى تراسلونه.' })) : renderComposer(keepText),
+    );
+    if (scroll) msgs.scrollTop = msgs.scrollHeight; else msgs.scrollTop = prevScroll;
+  }
+
+  function renderComposer(keepText) {
+    const text = el('textarea', { class: 'field', id: 'chat-text', rows: 2, placeholder: 'اكتبوا الرد...', maxlength: 2000 });
+    text.value = keepText || '';
+    const send = el('button', { class: 'btn btn-primary', type: 'button' }, 'إرسال');
+    const prodBtn = el('button', { class: 'btn', type: 'button', title: 'إرسال منتج' }, '🛍️ منتج');
+    const picker = el('div');
+    const doSend = async (extra = {}) => {
+      const body = { action: 'staff_send', thread_id: chat.openId, text: text.value.trim() || null, ...extra };
+      if (!body.text && !body.product_id) return;
+      send.disabled = true; prodBtn.disabled = true;
+      const { data, error } = await db.functions.invoke('chat-bot', { body });
+      send.disabled = false; prodBtn.disabled = false;
+      if (error || !data || !data.ok) {
+        let msg = (data && data.error) || '';
+        try { if (!msg && error && error.context) msg = (await error.context.json()).error || ''; } catch { /* تجاهل */ }
+        toast(msg || 'ما انرسل، جرّبوا مرة ثانية', true);
+        return;
+      }
+      text.value = '';
+      chat.picking = null;
+      await loadThreadMsgs(false);
+      renderThread(true);
+      chatPoll();
+    };
+    send.addEventListener('click', () => doSend());
+    text.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) doSend(); });
+    prodBtn.addEventListener('click', async () => {
+      if (picker.childElementCount) { picker.replaceChildren(); return; }
+      if (!chat.products) {
+        picker.replaceChildren(el('div', { class: 'help', text: 'جاري تحميل المنتجات...' }));
+        const { data } = await db.from('products').select('id, name, price, stock, image_url').gt('stock', 0).order('id', { ascending: false }).limit(1000);
+        chat.products = data || [];
+      }
+      const search = el('input', { class: 'field', placeholder: 'ابحثوا باسم المنتج أو رقمه...' });
+      const results = el('div', { class: 'chat-picker' });
+      const fill = () => {
+        const q = search.value.trim().replace('#', '');
+        const rows = chat.products.filter((p) => !q || String(p.id) === q || (p.name || '').includes(q)).slice(0, 40);
+        results.replaceChildren(...rows.map((p) => {
+          const imgs = Array.isArray(p.image_url) ? p.image_url : [];
+          const pick = () => {
+            if (imgs.length <= 1) { doSend({ product_id: p.id, image_index: 1 }); return; }
+            // أكثر من صورة: الموظف يختار الصورة اللي تنرسل
+            results.replaceChildren(
+              el('div', { class: 'help', text: `اختاروا صورة "${p.name}":` }),
+              el('div', { class: 'chat-imgs' }, ...imgs.slice(0, 12).map((u, i) => el('img', { src: u, alt: `صورة ${i + 1}`, title: `صورة ${i + 1}`, onclick: () => doSend({ product_id: p.id, image_index: i + 1 }) }))));
+          };
+          return el('div', { class: 'pi', onclick: pick },
+            imgs[0] ? el('img', { src: imgs[0], alt: '' }) : null,
+            el('div', null, el('div', { style: 'font-weight:700', text: p.name }),
+              el('div', { class: 'help', style: 'margin:0', text: `#${p.id} · ${money(p.price)} د.ع${imgs.length > 1 ? ` · ${imgs.length} صور` : ''}` })));
+        }));
+      };
+      search.addEventListener('input', fill);
+      picker.replaceChildren(search, results);
+      fill();
+      search.focus();
+    });
+    return el('div', { class: 'chat-compose' },
+      picker,
+      el('div', { class: 'row' }, text, el('div', { style: 'display:grid;gap:6px' }, send, prodBtn)),
+      el('div', { class: 'help', style: 'margin:0', text: 'Ctrl+Enter للإرسال. الرد يوصل للزبون بالتطبيق ويه إشعار.' }));
+  }
+
+  // ---- الموظفين (أدمن بس): حساب محدود يشوف الطلبات والدردشة ----
+  async function renderStaffCard() {
+    const box = $('appui-staff');
+    if (adm.role !== 'admin') { box.replaceChildren(); return; }
+    const { data, error } = await db.rpc('admin_staff_list');
+    if (error) { box.replaceChildren(el('div', { class: 'error', text: friendlyError(error) })); return; }
+    const email = el('input', { class: 'field', type: 'email', dir: 'ltr', placeholder: 'email@example.com' });
+    const name = el('input', { class: 'field', maxlength: 40, placeholder: 'مثلاً: ياسر' });
+    const err = el('div', { class: 'error', role: 'alert' });
+    const add = el('button', { class: 'btn btn-primary btn-sm', type: 'button' }, 'إضافة موظف');
+    add.addEventListener('click', async () => {
+      err.textContent = '';
+      add.disabled = true;
+      const { error: e } = await db.rpc('admin_add_staff', { p_email: email.value.trim(), p_name: name.value.trim() });
+      add.disabled = false;
+      if (e) { err.textContent = friendlyError(e); return; }
+      toast('انضاف الموظف ✅');
+      renderStaffCard();
+    });
+    box.replaceChildren(
+      el('h3', { text: '👥 الموظفين', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'الموظف يسوي حساب بتطبيق MODO بإيميله، وبعدين تضيفونه هنا. يدخل لهذي الصفحة بنفس الإيميل وكلمة السر، ويشوف بس "الطلبات" و"الدردشة" (ما يشوف المنتجات والأسعار والإعدادات). وإذا سجّل دخول بتطبيق MODO بنفس الحساب، توصله إشعارات الطلبات والرسائل (من نسخة 2.0.6).' }),
+      ...(data || []).map((s) => {
+        const rm = el('button', { class: 'btn btn-sm', type: 'button', style: 'color:var(--danger, #c62828)' }, 'إزالة');
+        rm.addEventListener('click', async () => {
+          if (!(await confirmDialog('إزالة الموظف؟', `${s.name} (${s.email}) ما يگدر يدخل للطلبات والدردشة بعد.`, 'إزالة'))) return;
+          const { error: e } = await db.rpc('admin_remove_staff', { p_user_id: s.user_id });
+          if (e) { toast(friendlyError(e), true); return; }
+          renderStaffCard();
+        });
+        return el('div', { style: 'display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:6px 0' },
+          el('b', { text: s.name }), el('span', { class: 'help', style: 'margin:0;flex:1', dir: 'ltr', text: s.email }), rm);
+      }),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'إيميل حساب الموظف' }), email),
+        el('div', null, el('label', { class: 'lbl', text: 'الاسم (يطلع للزبون ويه الرد)' }), name)),
+      err,
+      el('div', null, add),
+    );
+  }
+
   // ================= الأحداث =================
   $('login-form').addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -3409,6 +3740,11 @@
     $('inf-apps').replaceChildren();
     adm.influencers = [];
     adm.infApps = [];
+    chat.threads = []; chat.openId = null; chat.msgs = []; chat.primed = false; chat.products = null;
+    clearInterval(chat.listTimer);
+    $('chat-threads').replaceChildren();
+    $('chat-view').replaceChildren(el('div', { class: 'chat-empty', text: 'اختاروا محادثة من القائمة' }));
+    $('appui-staff').replaceChildren();
     showSection('orders');
     closeDetail();
     showLogin();
@@ -3422,6 +3758,7 @@
     if (adm.section === 'looks') { loadLooks(); return; }
     if (adm.section === 'stories') { loadStories(); return; }
     if (adm.section === 'splash') { loadSplash(); return; }
+    if (adm.section === 'chat') { chatPoll(); if (chat.openId) loadThreadMsgs(true); return; }
     state.itemsCache.clear();
     loadOrders();
   });
