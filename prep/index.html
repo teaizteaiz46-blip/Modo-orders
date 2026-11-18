@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MODO تجهيز">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>MODO تجهيز</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F5F3; --card: #fff; --ink: #1E1B18; --muted: #7C746D; --line: #ECE7E2; --soft: #F1EEEA;
+    --brand: #FF773D; --brandDark: #E2581C; --brandSoft: #FFEEE6;
+    --green: #1E7B3A; --greenSoft: #E5F5EA; --greenLine: #BFE5C9; --danger: #C62828;
+    --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); }
+  body { font-family: 'Rubik', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif; color: var(--ink); min-height: 100vh; touch-action: manipulation; }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  input { font: inherit; }
+  .hidden { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 560px; margin: 0 auto; }
+
+  /* الدخول */
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+  .login-card { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 26px 20px; display: grid; gap: 12px; }
+  .login-card img { width: 72px; height: 72px; border-radius: 18px; margin: 0 auto; }
+  .login-card h1 { text-align: center; font-size: 24px; font-weight: 900; }
+  .login-card h1 b { color: var(--brand); letter-spacing: 1px; }
+  .login-card p { text-align: center; color: var(--muted); font-size: 14px; margin-top: -6px; }
+  .field { width: 100%; height: 50px; border: 1.5px solid var(--line); border-radius: 14px; padding: 0 14px; font-size: 16px; background: #fff; outline: none; }
+  .field:focus { border-color: var(--brand); }
+  .field:placeholder-shown { direction: rtl; }
+  .btn-main { height: 52px; border-radius: 16px; background: var(--ink); color: #fff; font-weight: 800; font-size: 16px; }
+  .btn-main:disabled { opacity: .6; }
+  .err { color: var(--danger); font-size: 14px; text-align: center; min-height: 20px; }
+
+  /* القائمة */
+  .top { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid var(--line); padding: calc(var(--safe-t) + 10px) 16px 10px; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 20px; }
+  .brand b { color: var(--brand); letter-spacing: 1px; }
+  .brand .me { margin-inline-start: auto; font-size: 13px; color: var(--muted); font-weight: 600; display: flex; gap: 6px; align-items: center; }
+  .brand .me button { color: var(--muted); font-weight: 700; padding: 6px 4px; }
+  .icon-b { width: 38px; height: 38px; border-radius: 12px; background: var(--soft); display: grid; place-items: center; font-size: 17px; }
+  .icon-b.spin { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .tabs { display: flex; gap: 8px; margin-top: 10px; }
+  .tabs button { flex: 1; padding: 9px 0; border-radius: 12px; background: var(--soft); font-weight: 700; font-size: 14px; color: var(--muted); }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .list { padding: 12px 12px calc(var(--safe-b) + 24px); display: grid; gap: 10px; }
+  .oc { width: 100%; text-align: start; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: grid; gap: 8px; }
+  .oc:active { background: #FBFAF8; }
+  .oc .h { display: flex; align-items: center; gap: 8px; }
+  .oc .no { font-weight: 900; font-size: 17px; }
+  .oc .id { color: var(--muted); font-size: 13px; }
+  .badge { margin-inline-start: auto; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--brandSoft); color: var(--brandDark); white-space: nowrap; }
+  .badge.ok { background: var(--greenSoft); color: var(--green); }
+  .oc .meta { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .thumbs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .thumbs img, .thumbs .more { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; background: var(--soft); }
+  .thumbs .more { display: grid; place-items: center; font-weight: 800; color: var(--muted); }
+  .bar { height: 6px; background: var(--soft); border-radius: 99px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+  .empty { text-align: center; color: var(--muted); padding: 60px 20px; font-size: 15px; line-height: 1.8; }
+  .empty b { display: block; font-size: 40px; margin-bottom: 6px; }
+  .install { margin: 2px 0 0; background: #fff; border: 1.5px dashed #F6C9B2; border-radius: 16px; padding: 12px; font-size: 13.5px; line-height: 1.7; display: grid; gap: 8px; }
+  .install .r { display: flex; gap: 8px; align-items: center; }
+  .install .x { margin-inline-start: auto; color: var(--muted); font-size: 18px; padding: 0 6px; }
+  .install .go { height: 42px; border-radius: 12px; background: var(--brand); color: #fff; font-weight: 800; }
+
+  /* الطلب */
+  #detail { position: fixed; inset: 0; z-index: 10; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .dhead { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: calc(var(--safe-t) + 8px) 12px 10px; }
+  .dhead .r1 { display: flex; align-items: center; gap: 8px; }
+  .dhead .back { width: 40px; height: 40px; border-radius: 12px; font-size: 22px; color: var(--muted); display: grid; place-items: center; }
+  .dhead .t { font-weight: 900; font-size: 19px; }
+  .dhead .s { color: var(--muted); font-size: 13px; }
+  .alert { margin: 10px 12px 0; border-radius: 12px; padding: 10px 12px; font-weight: 700; font-size: 14px; background: #FDECEC; color: var(--danger); border: 1px solid #F5C2C2; }
+  .cust { margin: 10px 12px 0; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 8px 12px 12px; display: grid; gap: 2px; font-size: 14.5px; }
+  .cust .l { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: start; padding: 6px 0; line-height: 1.5; cursor: pointer; }
+  .cust .l:active, .cust .money:active { opacity: .6; }
+  .cust .l .v { font-weight: 700; flex: 1; }
+  .cust .l .a { flex: none; font-size: 13px; font-weight: 800; color: var(--brandDark); border: 1px solid #F6C9B2; border-radius: 99px; padding: 3px 12px; }
+  .cust .money { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px; width: 100%; }
+  .cust .money b { font-size: 18px; color: var(--green); }
+  .copy-btn { height: 46px; border-radius: 12px; background: var(--brandSoft); color: var(--brandDark); font-weight: 800; font-size: 15px; margin-top: 8px; width: 100%; }
+  .cust .hint { text-align: center; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .note { margin: 10px 12px 0; background: #FFF7E6; border: 1px solid #F5DFAE; color: #7A4F00; border-radius: 12px; padding: 9px 12px; font-size: 14px; font-weight: 600; line-height: 1.7; }
+  .items { padding: 10px 12px; display: grid; gap: 8px; }
+  .it { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 8px; display: flex; gap: 10px; align-items: center; cursor: pointer; user-select: none; }
+  .it.done { background: var(--greenSoft); border-color: var(--greenLine); }
+  .chk { width: 32px; height: 32px; border-radius: 10px; border: 2px solid #CFC7BF; flex: none; display: grid; place-items: center; font-weight: 900; color: transparent; font-size: 18px; background: #fff; }
+  .it.done .chk { background: var(--green); border-color: var(--green); color: #fff; }
+  .zoom { position: relative; flex: none; width: 66px; height: 66px; border-radius: 12px; overflow: hidden; background: var(--soft); }
+  .zoom img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .zoom::after { content: '🔍'; position: absolute; bottom: 3px; left: 3px; font-size: 11px; background: rgba(0,0,0,.55); border-radius: 7px; padding: 1px 4px; }
+  .it .info { flex: 1; min-width: 0; }
+  .it .n { font-weight: 800; font-size: 14.5px; line-height: 1.45; }
+  .it .c { font-size: 14px; color: var(--brandDark); font-weight: 700; margin-top: 2px; }
+  .gift { font-size: 12px; background: #FDE7EF; color: #C2185B; font-weight: 700; padding: 1px 8px; border-radius: 99px; display: inline-block; margin-top: 4px; }
+  .it .q { font-size: 23px; font-weight: 900; text-align: center; min-width: 48px; flex: none; }
+  .it .q.many { color: var(--brandDark); }
+  .it .q small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .loading { text-align: center; color: var(--muted); padding: 30px; }
+  .spacer-foot { height: calc(var(--safe-b) + 130px); }
+  .foot { position: fixed; bottom: 0; left: 0; right: 0; z-index: 11; background: #fff; border-top: 1px solid var(--line); padding: 10px 12px calc(var(--safe-b) + 12px); }
+  .foot .in { max-width: 560px; margin: 0 auto; display: grid; gap: 8px; }
+  .foot .p { font-size: 13px; color: var(--muted); text-align: center; }
+  .done-btn { height: 54px; border-radius: 16px; background: var(--green); color: #fff; font-weight: 900; font-size: 17px; width: 100%; }
+  .done-btn:disabled { opacity: .6; }
+  .undo-btn { height: 44px; border-radius: 14px; background: var(--soft); color: var(--ink); font-weight: 700; font-size: 14.5px; width: 100%; }
+  .ready-info { text-align: center; color: var(--green); font-weight: 800; font-size: 15px; }
+
+  /* عرض الصور */
+  #viewer { position: fixed; inset: 0; z-index: 30; background: #000; color: #fff; }
+  .v-track { position: absolute; inset: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; touch-action: pan-x; direction: ltr; }
+  .v-track::-webkit-scrollbar { display: none; }
+  .v-track.zoomed { overflow-x: hidden; touch-action: none; }
+  .v-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: center; display: grid; place-items: center; overflow: hidden; }
+  .v-slide img { width: 100%; height: 100%; object-fit: contain; transform-origin: center center; will-change: transform; user-select: none; -webkit-user-drag: none; }
+  .v-x { position: absolute; top: calc(var(--safe-t) + 12px); right: 14px; width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; font-size: 22px; color: #fff; z-index: 2; }
+  .v-cnt { position: absolute; top: calc(var(--safe-t) + 20px); left: 16px; background: rgba(255,255,255,.18); border-radius: 99px; padding: 4px 11px; font-size: 13px; font-weight: 700; z-index: 2; direction: ltr; }
+  .v-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 16px calc(var(--safe-b) + 18px); text-align: center; background: linear-gradient(transparent, rgba(0,0,0,.75)); pointer-events: none; z-index: 2; }
+  .v-info .n { font-weight: 800; font-size: 17px; }
+  .v-info .c { color: #FFB08C; font-weight: 700; margin-top: 4px; }
+  .v-dots { display: flex; justify-content: center; gap: 6px; margin-top: 12px; direction: ltr; }
+  .v-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.35); transition: width .2s; }
+  .v-dots i.on { background: #fff; width: 18px; border-radius: 4px; }
+  .v-hint { font-size: 12.5px; opacity: .7; margin-top: 10px; }
+
+  /* رسائل وتأكيد */
+  #toasts { position: fixed; left: 0; right: 0; bottom: calc(var(--safe-b) + 150px); z-index: 50; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding: 0 16px; }
+  .toast { background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 14px; font-weight: 700; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.18); max-width: 420px; text-align: center; }
+  .toast.bad { background: var(--danger); }
+  #modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); display: grid; place-items: center; padding: 20px; }
+  .m-card { width: 100%; max-width: 360px; background: #fff; border-radius: 20px; padding: 20px; display: grid; gap: 10px; }
+  .m-card h3 { font-size: 18px; font-weight: 900; }
+  .m-card p { color: var(--muted); font-size: 14.5px; line-height: 1.7; }
+  .m-btns { display: flex; gap: 8px; margin-top: 6px; }
+  .m-btns button { flex: 1; height: 46px; border-radius: 14px; font-weight: 800; }
+  .m-yes { background: var(--ink); color: #fff; }
+  .m-no { background: var(--soft); }
+</style>
+</head>
+<body>
+
+<section id="login" class="hidden">
+  <form class="login-card" id="login-form" autocomplete="on">
+    <img src="icon-192.png" alt="">
+    <h1><b>MODO</b> تجهيز</h1>
+    <p>للموظفين: تجهيز الطلبات المثبتة</p>
+    <input class="field" id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username" dir="ltr" required>
+    <input class="field" id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password" dir="ltr" required>
+    <div class="err" id="login-err"></div>
+    <button class="btn-main" id="login-btn" type="submit">دخول</button>
+  </form>
+</section>
+
+<section id="app" class="hidden">
+  <header class="top">
+    <div class="wrap">
+      <div class="brand">
+        <b>MODO</b> تجهيز
+        <span class="me"><span id="me"></span> · <button type="button" id="logout">خروج</button></span>
+        <button class="icon-b" type="button" id="refresh" aria-label="تحديث">⟳</button>
+      </div>
+      <div class="tabs">
+        <button type="button" data-tab="todo" aria-pressed="true">للتجهيز (<span class="num" id="c-todo">0</span>)</button>
+        <button type="button" data-tab="done" aria-pressed="false">جهزتوها اليوم (<span class="num" id="c-done">0</span>)</button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap list" id="list"></main>
+</section>
+
+<section id="detail" class="hidden" aria-live="polite"></section>
+<div id="foot" class="foot hidden"></div>
+<section id="viewer" class="hidden"></section>
+<div id="modal" class="hidden"></div>
+<div id="toasts" aria-live="assertive"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  // مفتاح anon عام أصلاً (موجود داخل التطبيق). الحماية بتسجيل الدخول وصلاحيات القاعدة (حساب موظف أو مدير).
+  const SUPABASE_URL = 'https://pajxormplmloivyankji.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhanhvcm1wbG1sb2l2eWFua2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0ODQ3OTksImV4cCI6MjA3NjA2MDc5OX0.eEPB_Gt5HywU9oGNXLpSNc4IA7CTTL7CX-EMKDE3yec';
+  const TZ = 'Asia/Baghdad';
+  const POLL_MS = 30000;
+  const TODO = 'طلب مثبت';
+  const READY = 'مجهز';
+  const COLS = 'id, created_at, customer_name, customer_phone, customer_address, cart_items, status, total_amount, governorate, address_details, admin_note, status_updated_at, options';
+  const CHECKS_KEY = 'modo_prep_checks_v1';
+  const INSTALL_KEY = 'modo_prep_install_hidden_v1';
+  const OPTION_ICONS = { 'كل موديل بكيس لحاله': '📦', 'تصوير البضاعة قبل ارسالها': '📸', 'التوصيل مساءً': '🌙' };
+
+  const $ = (id) => document.getElementById(id);
+  if (!window.supabase || !window.supabase.createClient) {
+    document.body.textContent = 'تعذر التحميل. تأكدوا من الإنترنت وحدّثوا الصفحة.';
+    return;
+  }
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true },
+  });
+
+  const S = {
+    tab: 'todo',
+    todo: [],
+    done: [],
+    loaded: false,
+    items: new Map(),      // order id -> القطع
+    products: new Map(),   // product id -> {id, name, image_url}
+    open: null,            // الطلب المفتوح
+    seenTodo: null,        // أرقام الطلبات الي شفناها (لتنبيه الطلب الجديد)
+    pollTimer: null,
+    audio: null,
+    installEvt: null,
+    busy: false,
+  };
+
+  // ================= أدوات =================
+  function el(tag, attrs, ...children) {
+    const node = document.createElement(tag);
+    if (attrs) {
+      for (const [k, v] of Object.entries(attrs)) {
+        if (v === null || v === undefined || v === false) continue;
+        if (k === 'class') node.className = v;
+        else if (k === 'text') node.textContent = v;
+        else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+        else node.setAttribute(k, v === true ? '' : String(v));
+      }
+    }
+    for (const c of children.flat()) {
+      if (c === null || c === undefined || c === false) continue;
+      node.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+    return node;
+  }
+  const money = (v) => Math.round(Number(v) || 0).toLocaleString('en-US');
+  // رقم الطلب داخل نص عربي: يبين #1234 مو 1234#
+  const ref = (id) => '⁦#' + id + '⁩';
+  const timeFmt = new Intl.DateTimeFormat('ar-IQ-u-nu-latn', { timeZone: TZ, timeStyle: 'short' });
+  const dateFmt = new Intl.DateTimeFormat('ar-IQ-u-nu-latn', { timeZone: TZ, dateStyle: 'medium' });
+
+  function timeAgo(iso) {
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return 'الآن';
+    if (diff < 3600) return `قبل ${Math.floor(diff / 60)} دقيقة`;
+    if (diff < 86400) return `قبل ${Math.floor(diff / 3600)} ساعة`;
+    if (diff < 86400 * 7) return `قبل ${Math.floor(diff / 86400)} يوم`;
+    return dateFmt.format(new Date(iso));
+  }
+  function todayStartIso() {
+    const b = new Date(Date.now() + 3 * 3600 * 1000);
+    b.setUTCHours(0, 0, 0, 0);
+    return new Date(b.getTime() - 3 * 3600 * 1000).toISOString();
+  }
+  function toDigits(s) {
+    return String(s || '')
+      .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+      .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+      .replace(/[^\d+]/g, '');
+  }
+  function addressParts(o) {
+    const raw = (o.customer_address || '').trim();
+    const idx = raw.indexOf('| تفاصيل الألوان:');
+    const base = idx >= 0 ? raw.slice(0, idx).trim() : raw;
+    const colors = idx >= 0 ? raw.slice(idx + '| تفاصيل الألوان:'.length).trim() : '';
+    const gov = (o.governorate || '').trim();
+    const details = (o.address_details || '').trim();
+    return { gov, details: gov || details ? details : base, text: gov || details ? [gov, details].filter(Boolean).join(' - ') : base, colors };
+  }
+  const options = (o) => (Array.isArray(o.options) ? o.options.filter(Boolean) : []);
+  const optLine = (t) => `${OPTION_ICONS[t] || '📌'} ${t}`;
+
+  function friendlyError(err) {
+    const msg = (err && (err.message || err.error_description)) || String(err || '');
+    if (/Invalid login credentials/i.test(msg)) return 'البريد أو كلمة المرور غير صحيحة';
+    if (/Email not confirmed/i.test(msg)) return 'البريد غير مفعّل';
+    if (/Failed to fetch|NetworkError|network|Load failed/i.test(msg)) return 'ماكو إنترنت، جربوا مرة ثانية';
+    if (/JWT|token/i.test(msg)) return 'انتهت الجلسة، سجّلوا دخول مرة ثانية';
+    return msg || 'صار خطأ، جربوا مرة ثانية';
+  }
+  function toast(text, bad = false) {
+    const t = el('div', { class: 'toast' + (bad ? ' bad' : ''), role: 'status', text });
+    $('toasts').append(t);
+    setTimeout(() => t.remove(), bad ? 5000 : 2600);
+  }
+  async function copyText(text, done) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = el('textarea', { style: 'position:fixed;opacity:0;top:0' });
+      ta.value = text;
+      document.body.append(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch { /* تجاهل */ }
+      ta.remove();
+    }
+    if (navigator.vibrate) navigator.vibrate(15);
+    toast(done || 'تم النسخ');
+  }
+  function confirmBox(title, text, yes, no = 'رجوع') {
+    return new Promise((resolve) => {
+      const m = $('modal');
+      const finish = (v) => { m.classList.add('hidden'); m.replaceChildren(); resolve(v); };
+      m.replaceChildren(el('div', { class: 'm-card', role: 'dialog', 'aria-modal': 'true' },
+        el('h3', { text: title }),
+        text ? el('p', { text }) : null,
+        el('div', { class: 'm-btns' },
+          el('button', { class: 'm-yes', type: 'button', onclick: () => finish(true), text: yes }),
+          el('button', { class: 'm-no', type: 'button', onclick: () => finish(false), text: no }),
+        ),
+      ));
+      m.onclick = (e) => { if (e.target === m) finish(false); };
+      m.classList.remove('hidden');
+    });
+  }
+  function unlockAudio() {
+    if (S.audio) return;
+    try { S.audio = new (window.AudioContext || window.webkitAudioContext)(); } catch { /* بدون صوت */ }
+  }
+  function beep() {
+    const ctx = S.audio;
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    [0, 0.18].forEach((off, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.frequency.value = i ? 1175 : 880;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + off);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + off + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + off + 0.16);
+      o.connect(g).connect(ctx.destination);
+      o.start(ctx.currentTime + off);
+      o.stop(ctx.currentTime + off + 0.18);
+    });
+  }
+
+  // ================= تأشير القطع (بهذا الموبايل) =================
+  function readChecks() {
+    try { return JSON.parse(localStorage.getItem(CHECKS_KEY) || '{}') || {}; } catch { return {}; }
+  }
+  function writeChecks(map) {
+    try { localStorage.setItem(CHECKS_KEY, JSON.stringify(map)); } catch { /* تجاهل */ }
+  }
+  function checksOf(orderId) { return new Set(readChecks()[orderId] || []); }
+  function setChecks(orderId, set) {
+    const map = readChecks();
+    if (set && set.size) map[orderId] = [...set]; else delete map[orderId];
+    writeChecks(map);
+  }
+  function pruneChecks() {
+    const keep = new Set(S.todo.map((o) => String(o.id)));
+    const map = readChecks();
+    let changed = false;
+    for (const k of Object.keys(map)) if (!keep.has(k)) { delete map[k]; changed = true; }
+    if (changed) writeChecks(map);
+  }
+
+  // ================= البيانات =================
+  async function loadOrders() {
+    const [a, b] = await Promise.all([
+      db.from('orders').select(COLS).eq('status', TODO).order('id', { ascending: true }).limit(300),
+      db.from('orders').select(COLS).eq('status', READY).gte('status_updated_at', todayStartIso())
+        .order('status_updated_at', { ascending: false }).limit(300),
+    ]);
+    if (a.error) throw a.error;
+    if (b.error) throw b.error;
+    await loadItems([...a.data, ...b.data]);
+    const fresh = a.data.filter((o) => S.seenTodo && !S.seenTodo.has(o.id));
+    S.todo = a.data;
+    S.done = b.data;
+    S.seenTodo = new Set([...(S.seenTodo || []), ...a.data.map((o) => o.id)]);
+    S.loaded = true;
+    pruneChecks();
+    return fresh;
+  }
+
+  async function loadItems(orders) {
+    const need = orders.filter((o) => !S.items.has(o.id)).map((o) => o.id);
+    const rows = [];
+    for (let i = 0; i < need.length; i += 100) {
+      const { data, error } = await db.from('order_items')
+        .select('id, order_id, product_id, product_name, product_image, color, quantity, gift_offer_id')
+        .in('order_id', need.slice(i, i + 100)).order('id').limit(2000);
+      if (error) throw error;
+      rows.push(...data);
+    }
+    const byOrder = new Map();
+    rows.forEach((r) => {
+      if (!byOrder.has(r.order_id)) byOrder.set(r.order_id, []);
+      byOrder.get(r.order_id).push({
+        key: 'i' + r.id, name: r.product_name || 'منتج', image: r.product_image, color: r.color || '',
+        qty: Number(r.quantity) || 1, productId: r.product_id, gift: r.gift_offer_id != null,
+      });
+    });
+    // طلبات قديمة بدون order_items: نبنيها من cart_items
+    const legacy = orders.filter((o) => need.includes(o.id) && !byOrder.has(o.id));
+    const legacyIds = new Set();
+    legacy.forEach((o) => Object.keys(o.cart_items || {}).map(Number).filter(Boolean).forEach((id) => legacyIds.add(id)));
+    await loadProducts([...legacyIds]);
+    legacy.forEach((o) => {
+      const map = o.cart_items && typeof o.cart_items === 'object' ? o.cart_items : {};
+      byOrder.set(o.id, Object.entries(map).filter(([id]) => Number(id)).map(([id, q]) => {
+        const p = S.products.get(Number(id));
+        return {
+          key: 'p' + id, name: p ? p.name : `منتج رقم ${id}`, image: p && Array.isArray(p.image_url) ? p.image_url[0] : null,
+          color: '', qty: Number(q) || 1, productId: Number(id), gift: false,
+        };
+      }));
+    });
+    need.forEach((id) => S.items.set(id, byOrder.get(id) || []));
+  }
+
+  async function loadProducts(ids) {
+    const miss = ids.filter((id) => id && !S.products.has(id));
+    for (let i = 0; i < miss.length; i += 100) {
+      const { data } = await db.from('products').select('id, name, image_url').in('id', miss.slice(i, i + 100));
+      (data || []).forEach((p) => S.products.set(p.id, p));
+    }
+  }
+
+  const itemsOf = (o) => S.items.get(o.id) || [];
+  const piecesOf = (o) => {
+    const it = itemsOf(o);
+    if (it.length) return it.reduce((s, i) => s + i.qty, 0);
+    return Object.values(o.cart_items || {}).reduce((s, q) => s + (Number(q) || 0), 0);
+  };
+  const piecesLabel = (n) => (n === 1 ? 'قطعة وحدة' : n === 2 ? 'قطعتين' : `${n} قطع`);
+
+  async function refresh({ silent = false } = {}) {
+    if (S.busy) return;
+    S.busy = true;
+    $('refresh').classList.add('spin');
+    try {
+      const fresh = await loadOrders();
+      renderList();
+      if (fresh.length) {
+        beep();
+        toast(fresh.length === 1 ? `🆕 طلب جديد للتجهيز ${ref(fresh[0].id)}` : `🆕 ${fresh.length} طلبات جديدة للتجهيز`);
+      }
+      await checkOpenOrder();
+    } catch (e) {
+      if (!silent) toast(friendlyError(e), true);
+      if (!S.loaded) renderList(friendlyError(e));
+    } finally {
+      S.busy = false;
+      $('refresh').classList.remove('spin');
+    }
+  }
+
+  // الطلب المفتوح انلغى أو تجهّز من موبايل ثاني؟
+  async function checkOpenOrder() {
+    const o = S.open;
+    if (!o || o.status !== TODO || S.todo.some((x) => x.id === o.id)) return;
+    const { data } = await db.from('orders').select('status, status_updated_at').eq('id', o.id).maybeSingle();
+    if (data && data.status !== o.status && S.open && S.open.id === o.id) {
+      S.open = { ...o, ...data };
+      renderDetail();
+    }
+  }
+
+  function startPolling() {
+    clearInterval(S.pollTimer);
+    S.pollTimer = setInterval(() => { if (!document.hidden) refresh({ silent: true }); }, POLL_MS);
+  }
+
+  // ================= القائمة =================
+  function renderList(error) {
+    $('c-todo').textContent = S.todo.length;
+    $('c-done').textContent = S.done.length;
+    document.querySelectorAll('.tabs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tab === S.tab)));
+    const list = $('list');
+    const arr = S.tab === 'todo' ? S.todo : S.done;
+    const nodes = [];
+    const inst = installBanner();
+    if (inst) nodes.push(inst);
+    if (!S.loaded) {
+      nodes.push(el('div', { class: 'empty' }, error ? [el('b', { text: '⚠️' }), error] : 'جاري تحميل الطلبات...'));
+    } else if (!arr.length) {
+      nodes.push(S.tab === 'todo'
+        ? el('div', { class: 'empty' }, el('b', { text: '🎉' }), 'ماكو طلبات تنتظر تجهيز هسه')
+        : el('div', { class: 'empty' }, el('b', { text: '🧺' }), 'بعد ما تجهّز أي طلب اليوم'));
+    } else {
+      arr.forEach((o) => nodes.push(orderCard(o)));
+    }
+    list.replaceChildren(...nodes);
+  }
+
+  function orderCard(o) {
+    const items = itemsOf(o);
+    const addr = addressParts(o);
+    const done = S.tab === 'done';
+    const checks = done ? new Set() : checksOf(o.id);
+    const checked = items.filter((i) => checks.has(i.key)).length;
+    const shown = items.slice(0, 5);
+    const meta = [piecesLabel(piecesOf(o)), done ? `تجهّز ${timeFmt.format(new Date(o.status_updated_at))}` : timeAgo(o.created_at)];
+    options(o).forEach((t) => meta.push(optLine(t)));
+    if (items.some((i) => i.gift)) meta.push('🎁 بيه هدية');
+    if (o.admin_note) meta.push('📝 بيه ملاحظة');
+    return el('button', { class: 'oc', type: 'button', onclick: () => openOrder(o.id) },
+      el('div', { class: 'h' },
+        el('span', { class: 'no num', text: `طلب ${ref(o.id)}` }),
+        el('span', { class: 'id', text: addr.gov || '' }),
+        el('span', { class: 'badge' + (done ? ' ok' : ''), text: done ? '✓ جاهز' : 'مثبت' }),
+      ),
+      items.length ? el('div', { class: 'thumbs' },
+        ...shown.map((i) => i.image ? el('img', { src: i.image, alt: '', loading: 'lazy' }) : el('div', { class: 'more', text: '📦' })),
+        items.length > shown.length ? el('div', { class: 'more', text: `+${items.length - shown.length}` }) : null,
+      ) : null,
+      !done && checked ? el('div', { class: 'bar' }, el('i', { style: `width:${Math.round((checked / items.length) * 100)}%` })) : null,
+      el('div', { class: 'meta', text: meta.join(' · ') }),
+    );
+  }
+
+  function installBanner() {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    let hidden = false;
+    try { hidden = localStorage.getItem(INSTALL_KEY) === '1'; } catch { /* تجاهل */ }
+    if (standalone || hidden || S.tab !== 'todo') return null;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (!ios && !S.installEvt) return null;
+    const close = () => { try { localStorage.setItem(INSTALL_KEY, '1'); } catch { /* تجاهل */ } renderList(); };
+    return el('div', { class: 'install' },
+      el('div', { class: 'r' }, el('b', { text: '📲 ثبّتوه على الشاشة الرئيسية' }), el('button', { class: 'x', type: 'button', 'aria-label': 'إخفاء', onclick: close, text: '×' })),
+      ios
+        ? el('div', { text: 'افتحوا الصفحة بـ Safari، اضغطوا زر المشاركة ⬆️ وبعدين "إضافة إلى الشاشة الرئيسية". يصير مثل التطبيق وينفتح بضغطة.' })
+        : el('button', {
+          class: 'go', type: 'button', text: 'تثبيت',
+          onclick: async () => {
+            const evt = S.installEvt;
+            if (!evt) return;
+            S.installEvt = null;
+            evt.prompt();
+            try { await evt.userChoice; } catch { /* تجاهل */ }
+            renderList();
+          },
+        }),
+    );
+  }
+
+  // ================= الطلب =================
+  async function openOrder(id, push = true) {
+    unlockAudio();
+    let o = S.todo.find((x) => x.id === id) || S.done.find((x) => x.id === id);
+    if (!o) {
+      const { data, error } = await db.from('orders').select(COLS).eq('id', id).maybeSingle();
+      if (error || !data) { toast(error ? friendlyError(error) : `طلب ${ref(id)} ما موجود`, true); return; }
+      o = data;
+      await loadItems([o]);
+    }
+    S.open = o;
+    if (push) history.pushState({ v: 'order', id }, '', '#o=' + id);
+    $('detail').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    renderDetail();
+    $('detail').scrollTop = 0;
+  }
+
+  function closeOrder() {
+    S.open = null;
+    $('detail').classList.add('hidden');
+    $('foot').classList.add('hidden');
+    $('detail').replaceChildren();
+    document.body.style.overflow = '';
+    renderList();
+  }
+
+  function goBack() {
+    if (history.state && history.state.v === 'order') history.back();
+    else { history.replaceState({ v: 'list' }, '', location.pathname); closeOrder(); }
+  }
+
+  function deliveryText(o) {
+    const addr = addressParts(o);
+    const lines = [
+      `طلب #${o.id} - MODO`,
+      `الاسم: ${o.customer_name || ''}`,
+      `الهاتف: ${o.customer_phone || ''}`,
+    ];
+    if (addr.gov) lines.push(`المحافظة: ${addr.gov}`);
+    lines.push(`العنوان: ${addr.details || addr.text || ''}`);
+    lines.push(`المبلغ: ${money(o.total_amount)} د.ع`);
+    lines.push(`عدد القطع: ${piecesOf(o)}`);
+    if (options(o).includes('التوصيل مساءً')) lines.push('ملاحظة: التوصيل مساءً');
+    return lines.join('\n');
+  }
+
+  function renderDetail() {
+    const o = S.open;
+    if (!o) return;
+    const d = $('detail');
+    const keepScroll = d.scrollTop;
+    const items = itemsOf(o);
+    const addr = addressParts(o);
+    const isTodo = o.status === TODO;
+    const checks = isTodo ? checksOf(o.id) : new Set();
+    const phone = toDigits(o.customer_phone);
+
+    const noteLines = [...options(o).map(optLine)];
+    if (o.admin_note) noteLines.push(`📝 ${o.admin_note}`);
+    if (addr.colors && !items.some((i) => i.color)) noteLines.push(`🎨 الألوان: ${addr.colors}`);
+
+    // سطر ينسخ لحاله (div مو button، حتى زر "اتصال" يشتغل داخله بكل الموبايلات)
+    const line = (icon, value, copyMsg, extra) => el('div', {
+      class: 'l', role: 'button', tabindex: '0', onclick: () => copyText(value, copyMsg),
+      onkeydown: (e) => { if (e.key === 'Enter') copyText(value, copyMsg); },
+    }, el('span', { text: icon }), el('span', { class: 'v', text: value || '—' }), extra || null);
+
+    let alert = null;
+    if (o.status === 'ملغي') alert = '⛔ هذا الطلب انلغى، لا تجهزوه';
+    else if (!isTodo && o.status !== READY) alert = `حالة الطلب: ${o.status || 'قيد المراجعة'} (مو مثبت للتجهيز)`;
+
+    d.replaceChildren(
+      el('div', { class: 'dhead' },
+        el('div', { class: 'wrap r1' },
+          el('button', { class: 'back', type: 'button', 'aria-label': 'رجوع', onclick: goBack, text: '→' }),
+          el('div', null,
+            el('div', { class: 't num', text: `طلب ${ref(o.id)}` }),
+            el('div', { class: 's', text: [addr.gov, piecesLabel(piecesOf(o)), timeAgo(o.created_at)].filter(Boolean).join(' · ') }),
+          ),
+        ),
+      ),
+      el('div', { class: 'wrap' },
+        alert ? el('div', { class: 'alert', text: alert }) : null,
+        el('div', { class: 'cust' },
+          line('👤', o.customer_name || '', 'تم نسخ الاسم'),
+          line('📞', o.customer_phone || '', 'تم نسخ الرقم',
+            phone ? el('a', { class: 'a', href: 'tel:' + phone, onclick: (e) => e.stopPropagation(), text: 'اتصال' }) : null),
+          line('📍', addr.text, 'تم نسخ العنوان'),
+          el('button', { class: 'money', type: 'button', onclick: () => copyText(String(Math.round(Number(o.total_amount) || 0)), 'تم نسخ المبلغ') },
+            el('span', { text: '💵 المبلغ عند الاستلام' }),
+            el('b', { class: 'num', text: `${money(o.total_amount)} د.ع` }),
+          ),
+          el('button', { class: 'copy-btn', type: 'button', onclick: () => copyText(deliveryText(o), '📋 انسخت المعلومات، الصقوها بشركة التوصيل') }, '📋 نسخ المعلومات لشركة التوصيل'),
+          el('div', { class: 'hint', text: 'أو اضغطوا على أي سطر حتى ينسخ لحاله' }),
+        ),
+        noteLines.length ? el('div', { class: 'note' }, ...noteLines.flatMap((t, i) => [i ? el('br') : null, t])) : null,
+        el('div', { class: 'items' },
+          ...(items.length ? items.map((it) => itemRow(o, it, checks, isTodo)) : [el('div', { class: 'loading', text: 'ماكو قطع مسجّلة لهذا الطلب' })]),
+        ),
+        el('div', { class: 'spacer-foot' }),
+      ),
+    );
+    d.scrollTop = keepScroll;
+    renderFoot();
+  }
+
+  function itemRow(o, it, checks, isTodo) {
+    const on = checks.has(it.key);
+    const row = el('div', {
+      class: 'it' + (on ? ' done' : ''), role: isTodo ? 'checkbox' : null, 'aria-checked': isTodo ? String(on) : null,
+      onclick: () => {
+        if (!isTodo) return;
+        const set = checksOf(o.id);
+        if (set.has(it.key)) set.delete(it.key); else set.add(it.key);
+        setChecks(o.id, set);
+        if (navigator.vibrate) navigator.vibrate(10);
+        renderDetail();
+      },
+    },
+      isTodo ? el('span', { class: 'chk', text: '✓' }) : null,
+      el('button', {
+        class: 'zoom', type: 'button', 'aria-label': 'تكبير الصورة',
+        onclick: (e) => { e.stopPropagation(); openViewer(it); },
+      }, it.image ? el('img', { src: it.image, alt: '', loading: 'lazy' }) : el('span', { text: '📦' })),
+      el('div', { class: 'info' },
+        el('div', { class: 'n', text: it.name }),
+        it.color ? el('div', { class: 'c', text: it.color }) : null,
+        it.gift ? el('span', { class: 'gift', text: '🎁 هدية مجانية' }) : null,
+      ),
+      el('div', { class: 'q num' + (it.qty > 1 ? ' many' : '') }, el('span', { dir: 'ltr', text: `${it.qty}×` }), el('small', { text: 'قطعة' })),
+    );
+    return row;
+  }
+
+  function renderFoot() {
+    const o = S.open;
+    const f = $('foot');
+    if (!o) { f.classList.add('hidden'); return; }
+    const items = itemsOf(o);
+    const kids = [];
+    if (o.status === TODO) {
+      const checks = checksOf(o.id);
+      const n = items.filter((i) => checks.has(i.key)).length;
+      kids.push(
+        el('div', { class: 'p num', text: `جهزتوا ${n} من ${items.length} · اضغطوا على الصورة حتى تكبر` }),
+        el('button', { class: 'done-btn', type: 'button', id: 'ready-btn', onclick: () => markReady(o) }, '✅ تم التجهيز'),
+      );
+    } else if (o.status === READY) {
+      kids.push(
+        el('div', { class: 'ready-info', text: `✓ تجهّز ${o.status_updated_at ? timeFmt.format(new Date(o.status_updated_at)) : ''}` }),
+        el('button', { class: 'undo-btn', type: 'button', id: 'undo-btn', onclick: () => undoReady(o) }, '↩︎ رجّعوه للتجهيز'),
+      );
+    }
+    f.replaceChildren(el('div', { class: 'in' }, ...kids));
+    f.classList.toggle('hidden', !kids.length);
+  }
+
+  async function currentStatus(id) {
+    const { data, error } = await db.from('orders').select('status, status_updated_at').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async function markReady(o) {
+    const items = itemsOf(o);
+    const checks = checksOf(o.id);
+    const left = items.filter((i) => !checks.has(i.key)).length;
+    if (left > 0) {
+      const ok = await confirmBox(
+        left === items.length ? 'ما أشّرتوا ولا قطعة' : `بعد ${left} من القطع ما متأشرة`,
+        'متأكدين إن الطلب تجهّز كامل؟',
+        'إي، تجهّز',
+      );
+      if (!ok) return;
+    }
+    const btn = $('ready-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'لحظة...'; }
+    try {
+      const cur = await currentStatus(o.id);
+      if (!cur || cur.status !== TODO) {
+        S.open = { ...o, ...(cur || {}) };
+        toast(cur && cur.status === 'ملغي' ? `⛔ طلب ${ref(o.id)} انلغى، لا تجهزوه` : `طلب ${ref(o.id)} حالته تغيّرت: ${cur ? cur.status : ''}`, true);
+        renderDetail();
+        refresh({ silent: true });
+        return;
+      }
+      const { data, error } = await db.rpc('admin_update_order', { p_order_id: o.id, p_status: READY, p_note: null });
+      if (error) throw error;
+      const updated = { ...o, ...data };
+      S.todo = S.todo.filter((x) => x.id !== o.id);
+      S.done = [updated, ...S.done.filter((x) => x.id !== o.id)];
+      setChecks(o.id, null);
+      if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
+      toast(`✅ طلب ${ref(o.id)} جاهز`);
+      goBack();
+    } catch (e) {
+      toast(friendlyError(e), true);
+      if (btn) { btn.disabled = false; btn.textContent = '✅ تم التجهيز'; }
+    }
+  }
+
+  async function undoReady(o) {
+    const ok = await confirmBox(`نرجّع طلب ${ref(o.id)} للتجهيز؟`, 'يرجع لقائمة "للتجهيز" وحالته تصير "طلب مثبت".', 'إي، رجّعه');
+    if (!ok) return;
+    const btn = $('undo-btn');
+    if (btn) btn.disabled = true;
+    try {
+      const cur = await currentStatus(o.id);
+      if (!cur || cur.status !== READY) {
+        S.open = { ...o, ...(cur || {}) };
+        toast(`طلب ${ref(o.id)} حالته هسه: ${cur ? cur.status : ''}`, true);
+        renderDetail();
+        refresh({ silent: true });
+        return;
+      }
+      const { data, error } = await db.rpc('admin_update_order', { p_order_id: o.id, p_status: TODO, p_note: null });
+      if (error) throw error;
+      const updated = { ...o, ...data };
+      S.done = S.done.filter((x) => x.id !== o.id);
+      S.todo = [...S.todo.filter((x) => x.id !== o.id), updated].sort((x, y) => x.id - y.id);
+      S.open = updated;
+      toast(`↩︎ طلب ${ref(o.id)} رجع للتجهيز`);
+      renderDetail();
+      renderList();
+    } catch (e) {
+      toast(friendlyError(e), true);
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  // ================= عرض الصور (سحب يمين ويسار، تكبير بإصبعين أو ضغطتين) =================
+  const V = { imgs: [], idx: 0, scale: 1, x: 0, y: 0, img: null, item: null, drag: null };
+
+  async function openViewer(item) {
+    let imgs = [];
+    if (item.productId) {
+      await loadProducts([item.productId]);
+      const p = S.products.get(item.productId);
+      imgs = (p && Array.isArray(p.image_url) ? p.image_url : []).filter(Boolean);
+    }
+    let start = item.image ? imgs.indexOf(item.image) : 0;
+    if (item.image && start < 0) { imgs = [item.image, ...imgs]; start = 0; }
+    if (!imgs.length) { toast('ماكو صور لهذا المنتج', true); return; }
+    Object.assign(V, { imgs, idx: Math.max(0, start), scale: 1, x: 0, y: 0, img: null, item });
+
+    const track = el('div', { class: 'v-track', id: 'v-track' },
+      ...imgs.map((src) => el('div', { class: 'v-slide' }, el('img', { src, alt: '', draggable: 'false' }))));
+    const v = $('viewer');
+    v.replaceChildren(
+      track,
+      el('button', { class: 'v-x', type: 'button', 'aria-label': 'إغلاق', onclick: () => history.back(), text: '✕' }),
+      el('div', { class: 'v-cnt num', id: 'v-cnt' }),
+      el('div', { class: 'v-info' },
+        el('div', { class: 'n', text: item.name }),
+        el('div', { class: 'c', text: `المطلوب: ${item.color ? item.color + ' ' : ''}×${item.qty}` }),
+        imgs.length > 1 && imgs.length <= 15 ? el('div', { class: 'v-dots', id: 'v-dots' }, ...imgs.map(() => el('i'))) : null,
+        el('div', { class: 'v-hint', text: imgs.length > 1 ? 'اسحبوا يمين أو يسار حتى تشوفون باقي الصور · كبّروا بإصبعين أو ضغطتين' : 'كبّروا بإصبعين أو ضغطتين' }),
+      ),
+    );
+    v.classList.remove('hidden');
+    history.pushState({ v: 'viewer', id: S.open && S.open.id }, '', location.hash || '#');
+    track.scrollLeft = V.idx * track.clientWidth;
+    updateViewerIndex();
+    track.addEventListener('scroll', () => {
+      const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      if (i !== V.idx) { resetZoom(); V.idx = i; updateViewerIndex(); }
+    }, { passive: true });
+    bindZoom(track);
+  }
+
+  function updateViewerIndex() {
+    const cnt = $('v-cnt');
+    if (cnt) cnt.textContent = `${V.idx + 1} / ${V.imgs.length}`;
+    const dots = $('v-dots');
+    if (dots) [...dots.children].forEach((d, i) => d.classList.toggle('on', i === V.idx));
+  }
+
+  function closeViewer() {
+    resetZoom();
+    $('viewer').classList.add('hidden');
+    $('viewer').replaceChildren();
+  }
+
+  function currentImg() {
+    const track = $('v-track');
+    return track ? track.children[V.idx] && track.children[V.idx].querySelector('img') : null;
+  }
+  function clampPan() {
+    const img = V.img;
+    if (!img) return;
+    const w = img.clientWidth, h = img.clientHeight;
+    const mx = ((V.scale - 1) * w) / 2, my = ((V.scale - 1) * h) / 2;
+    V.x = Math.max(-mx, Math.min(mx, V.x));
+    V.y = Math.max(-my, Math.min(my, V.y));
+  }
+  function applyZoom() {
+    if (!V.img) return;
+    clampPan();
+    V.img.style.transform = V.scale > 1 ? `translate(${V.x}px, ${V.y}px) scale(${V.scale})` : '';
+    const track = $('v-track');
+    if (track) track.classList.toggle('zoomed', V.scale > 1);
+  }
+  function resetZoom() {
+    if (V.img) V.img.style.transform = '';
+    V.scale = 1; V.x = 0; V.y = 0;
+    const track = $('v-track');
+    if (track) track.classList.remove('zoomed');
+  }
+  // نقطة على الشاشة تبقى بمكانها وإحنا نكبّر
+  function zoomAt(px, py, newScale, from) {
+    const img = V.img;
+    const r = img.parentElement.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const base = from || { scale: V.scale, x: V.x, y: V.y, px, py };
+    const lx = (base.px - cx - base.x) / base.scale;
+    const ly = (base.py - cy - base.y) / base.scale;
+    V.scale = Math.max(1, Math.min(5, newScale));
+    V.x = px - cx - lx * V.scale;
+    V.y = py - cy - ly * V.scale;
+    applyZoom();
+  }
+
+  function bindZoom(track) {
+    let pinch = null, pan = null, lastTap = 0, tapPos = null, moved = false;
+    const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const mid = (a, b) => ({ x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
+
+    track.addEventListener('touchstart', (e) => {
+      V.img = currentImg();
+      V.lastTouch = Date.now();
+      moved = false;
+      if (e.touches.length === 2) {
+        const m = mid(e.touches[0], e.touches[1]);
+        pinch = { d: dist(e.touches[0], e.touches[1]), scale: V.scale, x: V.x, y: V.y, px: m.x, py: m.y };
+        pan = null;
+      } else if (e.touches.length === 1 && V.scale > 1) {
+        pan = { sx: e.touches[0].clientX, sy: e.touches[0].clientY, x: V.x, y: V.y };
+      }
+    }, { passive: true });
+
+    track.addEventListener('touchmove', (e) => {
+      moved = true;
+      if (pinch && e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
+        const m = mid(e.touches[0], e.touches[1]);
+        zoomAt(m.x, m.y, pinch.scale * (dist(e.touches[0], e.touches[1]) / pinch.d), pinch);
+      } else if (pan && e.touches.length === 1 && V.scale > 1) {
+        if (e.cancelable) e.preventDefault();
+        V.x = pan.x + (e.touches[0].clientX - pan.sx);
+        V.y = pan.y + (e.touches[0].clientY - pan.sy);
+        applyZoom();
+      }
+    }, { passive: false });
+
+    track.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) pinch = null;
+      if (e.touches.length === 0) {
+        pan = null;
+        if (V.scale < 1.05) resetZoom();
+        // ضغطتين = تكبير/تصغير
+        const t = e.changedTouches[0];
+        const now = Date.now();
+        if (!moved && t) {
+          if (now - lastTap < 300 && tapPos && Math.hypot(t.clientX - tapPos.x, t.clientY - tapPos.y) < 30) {
+            V.img = currentImg();
+            if (V.scale > 1) resetZoom(); else zoomAt(t.clientX, t.clientY, 2.5);
+            lastTap = 0;
+          } else {
+            lastTap = now;
+            tapPos = { x: t.clientX, y: t.clientY };
+          }
+        }
+      }
+    });
+
+    // الكمبيوتر: ضغطتين بالماوس + عجلة الماوس
+    track.addEventListener('dblclick', (e) => {
+      // الموبايل يطلق dblclick ورا الضغطتين باللمس: انحسبت فوق، لا نرجّعها
+      if (Date.now() - (V.lastTouch || 0) < 1000) return;
+      V.img = currentImg();
+      if (V.scale > 1) resetZoom(); else zoomAt(e.clientX, e.clientY, 2.5);
+    });
+    track.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey && V.scale <= 1 && Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      V.img = currentImg();
+      zoomAt(e.clientX, e.clientY, V.scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+      if (V.scale < 1.05) resetZoom();
+    }, { passive: false });
+    track.addEventListener('mousedown', (e) => {
+      if (V.scale <= 1) return;
+      V.drag = { sx: e.clientX, sy: e.clientY, x: V.x, y: V.y };
+      e.preventDefault();
+    });
+  }
+  // سحب الصورة المكبّرة بالماوس (مرة وحدة للصفحة كلها)
+  window.addEventListener('mousemove', (e) => {
+    if (!V.drag) return;
+    V.x = V.drag.x + (e.clientX - V.drag.sx);
+    V.y = V.drag.y + (e.clientY - V.drag.sy);
+    applyZoom();
+  });
+  window.addEventListener('mouseup', () => { V.drag = null; });
+
+  // آيفون: نمنع تكبير الصفحة كلها وعرض الصور مفتوح
+  document.addEventListener('gesturestart', (e) => { if (!$('viewer').classList.contains('hidden')) e.preventDefault(); });
+
+  // ================= التنقل (زر الرجوع بالموبايل) =================
+  window.addEventListener('popstate', (e) => {
+    const st = e.state || {};
+    if (!$('viewer').classList.contains('hidden') && st.v !== 'viewer') closeViewer();
+    if (st.v === 'order' || st.v === 'viewer') {
+      if (!S.open || S.open.id !== st.id) openOrder(st.id, false);
+    } else if (S.open) {
+      closeOrder();
+    }
+  });
+  // رابط #o=123 والصفحة مفتوحة أصلاً
+  window.addEventListener('hashchange', () => {
+    const m = /^#o=(\d+)$/.exec(location.hash);
+    if (!m || $('app').classList.contains('hidden')) return;
+    const id = Number(m[1]);
+    if (S.open && S.open.id === id) return;
+    history.replaceState({ v: 'order', id }, '', location.hash);
+    openOrder(id, false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!$('modal').classList.contains('hidden')) return;
+    if (!$('viewer').classList.contains('hidden') || S.open) history.back();
+  });
+
+  // ================= الجلسة =================
+  function showLogin(msg) {
+    clearInterval(S.pollTimer);
+    $('app').classList.add('hidden');
+    closeOrder();
+    closeViewer();
+    $('login').classList.remove('hidden');
+    $('login-err').textContent = msg || '';
+    $('login-btn').disabled = false;
+    $('login-btn').textContent = 'دخول';
+  }
+
+  async function enterApp(session) {
+    const { data: role, error } = await db.rpc('my_staff_role');
+    if (error || !role) {
+      await db.auth.signOut();
+      showLogin(error ? friendlyError(error) : 'هذا الحساب ما عنده صلاحية على تجهيز الطلبات');
+      return;
+    }
+    const email = (session && session.user && session.user.email) || '';
+    $('me').textContent = email.split('@')[0];
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    renderList();
+    await refresh();
+    startPolling();
+    // رابط مباشر لطلب: prep/#o=123
+    const m = /^#o=(\d+)$/.exec(location.hash);
+    history.replaceState({ v: 'list' }, '', location.pathname);
+    if (m) openOrder(Number(m[1]));
+  }
+
+  $('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    unlockAudio();
+    const email = $('email').value.trim();
+    const password = $('password').value;
+    if (!email || !password) return;
+    $('login-btn').disabled = true;
+    $('login-btn').textContent = 'لحظة...';
+    $('login-err').textContent = '';
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) { showLogin(friendlyError(error)); return; }
+    $('password').value = '';
+    await enterApp(data.session);
+  });
+
+  $('logout').addEventListener('click', async () => {
+    const ok = await confirmBox('تطلعون من الحساب؟', '', 'خروج');
+    if (!ok) return;
+    await db.auth.signOut();
+    S.todo = []; S.done = []; S.loaded = false; S.seenTodo = null; S.items.clear();
+    showLogin();
+  });
+  $('refresh').addEventListener('click', () => { unlockAudio(); refresh(); });
+  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+    unlockAudio();
+    S.tab = b.dataset.tab;
+    renderList();
+    window.scrollTo(0, 0);
+  }));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !$('app').classList.contains('hidden')) refresh({ silent: true });
+  });
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    S.installEvt = e;
+    if (!$('app').classList.contains('hidden')) renderList();
+  });
+  db.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT' && !$('app').classList.contains('hidden')) showLogin('انتهت الجلسة، سجّلوا دخول مرة ثانية');
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* يشتغل بدونه */ });
+  }
+
+  (async () => {
+    const { data: { session } } = await db.auth.getSession();
+    if (session) await enterApp(session);
+    else showLogin();
+  })();
+})();
+</script>
+</body>
+</html>
