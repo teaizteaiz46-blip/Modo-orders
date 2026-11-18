@@ -376,7 +376,7 @@
   // ================= البيانات =================
   async function loadOrders() {
     const [a, b] = await Promise.all([
-      db.from('orders').select(COLS).eq('status', TODO).order('id', { ascending: true }).limit(300),
+      db.from('orders').select(COLS).eq('status', TODO).order('id', { ascending: false }).limit(300),
       db.from('orders').select(COLS).eq('status', READY).gte('status_updated_at', todayStartIso())
         .order('status_updated_at', { ascending: false }).limit(300),
     ]);
@@ -775,7 +775,7 @@
       if (error) throw error;
       const updated = { ...o, ...data };
       S.done = S.done.filter((x) => x.id !== o.id);
-      S.todo = [...S.todo.filter((x) => x.id !== o.id), updated].sort((x, y) => x.id - y.id);
+      S.todo = [...S.todo.filter((x) => x.id !== o.id), updated].sort((x, y) => y.id - x.id);
       S.open = updated;
       toast(`↩︎ طلب ${ref(o.id)} رجع للتجهيز`);
       renderDetail();
