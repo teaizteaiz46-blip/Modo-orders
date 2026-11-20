@@ -514,6 +514,7 @@
   <main class="wrap hidden" id="sec-appui">
     <div class="new-clip" id="appui-staff"></div>
     <div class="new-clip" id="appui-home"></div>
+    <div class="new-clip" id="appui-row"></div>
     <div class="new-clip" id="appui-update"></div>
   </main>
 </div>
@@ -3382,13 +3383,182 @@
   async function openAppUi() {
     renderStaffCard();
     $('appui-home').replaceChildren(el('div', { class: 'muted', text: 'جاري التحميل...' }));
+    $('appui-row').replaceChildren();
     $('appui-update').replaceChildren();
     if (!adm.categories.length) await loadCategories();
+    // صف المنتجات يحتاج قائمة المنتجات (البحث والصور والمخزون)
+    if (!adm.productsLoaded) await loadProducts();
     const { data, error } = await db.from('store_settings').select('*').eq('id', 1).maybeSingle();
     if (error) { $('appui-home').replaceChildren(el('div', { class: 'error', text: friendlyError(error) })); return; }
     const s = data || {};
     renderAppUiHome(s);
+    renderAppUiRow(s);
     renderAppUiUpdate(s);
+  }
+
+  // صف منتجات بالعرض بالرئيسية بدل البانر (store_settings.home_row_*). التطبيق يقراه من نسخة 2.0.7.
+  const ROW_MAX_PICKED = 30;
+  function renderAppUiRow(s) {
+    if (!('home_row_on' in s)) {
+      $('appui-row').replaceChildren(
+        el('h3', { text: '🛍️ صف المنتجات بالرئيسية (بدل البانر)', style: 'margin:0' }),
+        el('div', { class: 'help', text: 'بعده ما مفعّل بقاعدة البيانات.' }),
+      );
+      return;
+    }
+    const on = el('input', { type: 'checkbox' });
+    on.checked = s.home_row_on === true;
+    const title = el('input', { class: 'field', maxlength: 40, placeholder: 'مثال: 👗 ملابس', value: s.home_row_title || '' });
+    const subtitle = el('input', { class: 'field', maxlength: 60, placeholder: 'مثال: وصلت جديد (اختياري)', value: s.home_row_subtitle || '' });
+    const srcCat = el('input', { type: 'radio', name: 'row-src', value: 'category' });
+    const srcProd = el('input', { type: 'radio', name: 'row-src', value: 'products' });
+    (s.home_row_source === 'products' ? srcProd : srcCat).checked = true;
+    const catOptions = () => adm.categories.map((c) => el('option', { value: c.id, text: c.name }));
+    const cat = el('select', { class: 'field' }, el('option', { value: '', text: 'اختاروا القسم...' }), ...catOptions());
+    cat.value = s.home_row_category_id ? String(s.home_row_category_id) : '';
+    const limit = el('input', { class: 'field', type: 'number', min: 3, max: 20, step: 1, value: s.home_row_limit ?? 10 });
+    const allCat = el('select', { class: 'field' }, el('option', { value: '', text: 'نفس منتجات الصف' }), ...catOptions());
+    allCat.value = s.home_row_all_category_id ? String(s.home_row_all_category_id) : '';
+    const picked = (Array.isArray(s.home_row_product_ids) ? s.home_row_product_ids : []).map(Number).filter(Boolean);
+
+    const catBox = el('div');
+    const prodBox = el('div', { style: 'display:grid;gap:8px' });
+    const pickedList = el('div', { style: 'display:grid;gap:6px' });
+    const search = el('input', { class: 'field', type: 'search', placeholder: 'ابحثوا باسم المنتج أو رقمه وضيفوه للصف...' });
+    const results = el('div', { style: 'display:grid;gap:4px;max-height:260px;overflow:auto' });
+    const preview = el('div', { class: 'help', style: 'font-weight:700;color:#1E7B3A' });
+    const err = el('div', { class: 'error', role: 'alert' });
+    const save = el('button', { class: 'btn btn-primary', type: 'button' }, 'حفظ');
+
+    const product = (id) => adm.products.find((p) => p.id === id);
+    const thumb = (p) => {
+      const src = p && Array.isArray(p.image_url) ? p.image_url[0] : null;
+      return src
+        ? el('img', { src, alt: '', loading: 'lazy', style: 'width:38px;height:38px;border-radius:8px;object-fit:cover;flex:none' })
+        : el('span', { style: 'width:38px;height:38px;border-radius:8px;background:#f0ece8;flex:none' });
+    };
+    const move = (i, d) => {
+      const j = i + d;
+      if (j < 0 || j >= picked.length) return;
+      [picked[i], picked[j]] = [picked[j], picked[i]];
+      refresh();
+    };
+
+    const refresh = () => {
+      err.textContent = '';
+      const isProd = srcProd.checked;
+      catBox.style.display = isProd ? 'none' : '';
+      prodBox.style.display = isProd ? '' : 'none';
+      const n = Math.max(3, Math.min(20, Math.round(Number(limit.value) || 10)));
+      // كم منتج يشوف الزبون هسه (المتوفر بس)
+      let shown;
+      if (isProd) {
+        shown = picked.filter((id) => Number((product(id) || {}).stock) > 0).length;
+      } else {
+        shown = cat.value ? adm.products.filter((p) => String(p.category_id) === cat.value && Number(p.stock) > 0).length : 0;
+      }
+      shown = Math.min(shown, n);
+      preview.textContent = !on.checked
+        ? 'مطفي: الزبون يشوف البانر مثل قبل.'
+        : shown
+          ? `الزبون يشوف بالصف: ${shown} ${shown === 1 ? 'منتج' : 'منتجات'}${isProd ? ' (بالترتيب الي فوك)' : ' (الأحدث أولاً)'}.`
+          : '⚠️ ماكو منتجات متوفرة بالصف، فالتطبيق راح يطلع البانر بداله.';
+      preview.style.color = on.checked && !shown ? '#b26a00' : '#1E7B3A';
+
+      pickedList.replaceChildren(
+        ...(picked.length ? [] : [el('div', { class: 'muted', style: 'font-size:13px', text: 'ما اخترتوا منتجات بعد.' })]),
+        ...picked.map((id, i) => {
+          const p = product(id) || { id, name: 'منتج #' + id, stock: 0 };
+          const out = !(Number(p.stock) > 0);
+          return el('div', { style: `display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:5px 8px;${out ? 'opacity:.55' : ''}` },
+            el('span', { class: 'num', style: 'color:#999;min-width:18px', text: i + 1 }),
+            thumb(p),
+            el('span', { style: 'flex:1;font-size:13px;font-weight:600', text: `${p.name}${out ? ' (نافد، ما يطلع)' : ''} · ${money(p.price)}` }),
+            el('button', { class: 'btn btn-sm', type: 'button', 'aria-label': 'لفوك', disabled: i === 0 ? '' : null, onclick: () => move(i, -1) }, '▲'),
+            el('button', { class: 'btn btn-sm', type: 'button', 'aria-label': 'لجوه', disabled: i === picked.length - 1 ? '' : null, onclick: () => move(i, 1) }, '▼'),
+            el('button', { class: 'btn btn-sm', type: 'button', 'aria-label': 'شيل', onclick: () => { picked.splice(i, 1); refresh(); } }, '✕'),
+          );
+        }),
+      );
+
+      const q = search.value.trim();
+      if (!q) { results.replaceChildren(); return; }
+      const rows = adm.products
+        .filter((p) => String(p.id) === q.replace('#', '') || (p.name || '').includes(q))
+        .slice(0, 40);
+      results.replaceChildren(
+        ...(rows.length ? [] : [el('div', { class: 'muted', text: 'ماكو نتائج' })]),
+        ...rows.map((p) => {
+          const added = picked.includes(p.id);
+          const full = picked.length >= ROW_MAX_PICKED;
+          const btn = el('button', { class: 'btn btn-sm', type: 'button', disabled: added || full ? '' : null },
+            added ? 'مضاف ✓' : full ? `الحد ${ROW_MAX_PICKED}` : '+ إضافة');
+          btn.addEventListener('click', () => { picked.push(p.id); refresh(); });
+          return el('div', { style: 'display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:4px 0' },
+            thumb(p),
+            el('span', { style: 'flex:1;font-size:13px', text: `#${p.id} · ${p.name} · ${money(p.price)} د.ع · مخزون ${p.stock}` }),
+            btn);
+        }),
+      );
+    };
+    [on, srcCat, srcProd, cat].forEach((x) => x.addEventListener('change', refresh));
+    limit.addEventListener('input', refresh);
+    search.addEventListener('input', refresh);
+
+    save.addEventListener('click', async () => {
+      err.textContent = '';
+      const isProd = srcProd.checked;
+      const n = Math.round(Number(limit.value));
+      if (on.checked && title.value.trim().length < 2) { err.textContent = 'اكتبوا عنوان الصف (مثلاً: 👗 ملابس)'; return; }
+      if (on.checked && !isProd && !cat.value) { err.textContent = 'اختاروا القسم'; return; }
+      if (on.checked && isProd && !picked.length) { err.textContent = 'ضيفوا منتج واحد على الأقل'; return; }
+      if (!Number.isInteger(n) || n < 3 || n > 20) { err.textContent = 'أكثر عدد بالصف من 3 إلى 20'; return; }
+      const row = {
+        home_row_on: on.checked,
+        home_row_title: title.value.trim() || null,
+        home_row_subtitle: subtitle.value.trim() || null,
+        home_row_source: isProd ? 'products' : 'category',
+        home_row_category_id: cat.value ? Number(cat.value) : null,
+        home_row_product_ids: picked,
+        home_row_limit: n,
+        home_row_all_category_id: allCat.value ? Number(allCat.value) : null,
+        updated_at: new Date().toISOString(),
+      };
+      save.disabled = true;
+      const { error } = await db.from('store_settings').update(row).eq('id', 1);
+      save.disabled = false;
+      if (error) { err.textContent = friendlyError(error); return; }
+      toast(row.home_row_on ? 'انحفظ ✅ الصف يطلع بالرئيسية بدل البانر' : 'انحفظ ✅ الصف مطفي، والبانر يرجع');
+    });
+
+    catBox.append(el('label', { class: 'lbl', text: 'القسم (تطلع أحدث منتجاته المتوفرة تلقائياً)' }), cat);
+    prodBox.append(
+      el('label', { class: 'lbl', text: `المنتجات بالترتيب (لحد ${ROW_MAX_PICKED})، والنافد يختفي من الصف وحده` }),
+      pickedList, search, results,
+    );
+    $('appui-row').replaceChildren(
+      el('h3', { text: '🛍️ صف المنتجات بالرئيسية (بدل البانر)', style: 'margin:0' }),
+      el('div', { class: 'help', text: 'صف منتجات يتصفحه الزبون بالعرض، بمكان البانر. إذا طفيتوه أو ماكو منتجات متوفرة بيه، البانر يرجع. يشتغل من نسخة 2.0.7 وفوگ؛ النسخ الأقدم تبقى تشوف البانر.' }),
+      el('label', { class: 'check' }, on, 'تشغيل الصف بدل البانر'),
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'العنوان' }), title),
+        el('div', null, el('label', { class: 'lbl', text: 'سطر صغير يمّ العنوان (اختياري)' }), subtitle),
+      ),
+      el('div', { style: 'display:flex;gap:16px;flex-wrap:wrap;margin-top:4px' },
+        el('label', { class: 'check' }, srcCat, 'من قسم'),
+        el('label', { class: 'check' }, srcProd, 'منتجات أختارها بنفسي'),
+      ),
+      catBox,
+      prodBox,
+      el('div', { class: 'form-grid' },
+        el('div', null, el('label', { class: 'lbl', text: 'أكثر عدد بالصف (3 إلى 20)' }), limit),
+        el('div', null, el('label', { class: 'lbl', text: 'زر «عرض الكل» يفتح' }), allCat),
+      ),
+      preview,
+      err,
+      el('div', null, save),
+    );
+    refresh();
   }
 
   function renderAppUiHome(s) {
