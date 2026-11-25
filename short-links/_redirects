@@ -1,0 +1,9 @@
+# موقع الروابط القصيرة على Netlify (modo-iq.netlify.app). كل رابط يودّي لصفحة التحميل ويه اسم الحملة.
+/w   /?utm_source=ig&utm_campaign=wholesale   302
+/o   /?utm_source=ig&utm_campaign=order       302
+/r   /?utm_source=ig&utm_campaign=4reasons    302
+/m   /?utm_source=ig&utm_campaign=map         302
+# الصفحة نفسها تجي من GitHub Pages، حتى تبقى نسخة وحدة نعدّلها بمكان واحد (app.html)
+/app-icon.png    https://teaizteaiz46-blip.github.io/Modo-orders/app-icon.png    200
+/app-share.jpg   https://teaizteaiz46-blip.github.io/Modo-orders/app-share.jpg   200
+/                https://teaizteaiz46-blip.github.io/Modo-orders/app.html        200
