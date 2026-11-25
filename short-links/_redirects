@@ -3,6 +3,7 @@
 /o   /?utm_source=ig&utm_campaign=order       302
 /r   /?utm_source=ig&utm_campaign=4reasons    302
 /m   /?utm_source=ig&utm_campaign=map         302
+/ig  /?utm_source=ig&utm_campaign=bio         302
 # الصفحة نفسها تجي من GitHub Pages، حتى تبقى نسخة وحدة نعدّلها بمكان واحد (app.html)
 /app-icon.png    https://teaizteaiz46-blip.github.io/Modo-orders/app-icon.png    200
 /app-share.jpg   https://teaizteaiz46-blip.github.io/Modo-orders/app-share.jpg   200
