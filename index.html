@@ -2793,6 +2793,23 @@
       value: inf ? inf.account_email || '' : app ? app.email || '' : '' });
     if (app) email.disabled = true;
     const code = el('input', { class: 'field num', maxlength: 20, dir: 'ltr', placeholder: 'مثال: ZAINAB', style: 'text-transform:uppercase', value: inf ? inf.code : '' });
+    // حرف O ورقم 0 يتخربطون بالكود الي بيه حروف وأرقام سوه: ينحفظ R020 والزبون يكتب RO20 فيطلعله "غير فعال".
+    // الأسماء الي كلها حروف (NOOR) ما نحذّر منها، محد يكتب بيها صفر.
+    const codeWarn = el('div', { class: 'help', style: 'color:#b45309;font-weight:700' });
+    const codeSpell = el('div', { dir: 'ltr', style: 'display:flex;gap:4px;flex-wrap:wrap;margin-top:4px' });
+    const confusing = (s) => /[O0]/.test(s) && /[A-Z]/.test(s) && /[0-9]/.test(s);
+    const CH_KIND = { O: 'حرف', 0: 'رقم' };
+    const showCodeWarn = () => {
+      const s = code.value.trim().toUpperCase();
+      const risk = confusing(s);
+      codeWarn.textContent = risk ? '⚠️ الناس تخربط بين حرف O ورقم 0. الكود راح ينحفظ هيچ بالضبط، تأكدوا منه:' : '';
+      codeSpell.replaceChildren(...(risk ? [...s].map((ch) => el('span', {
+        class: 'badge' + (CH_KIND[ch] ? ' orange' : ''), dir: 'rtl', style: 'font:700 14px monospace;padding:2px 8px',
+        text: CH_KIND[ch] ? `${CH_KIND[ch]} ${ch}` : ch,
+      })) : []));
+    };
+    code.addEventListener('input', showCodeWarn);
+    showCodeWarn();
     const discount = el('input', { class: 'field', type: 'number', min: 1500, step: 500, value: inf ? inf.discount : 2000 });
     const commission = el('input', { class: 'field', type: 'number', min: 0, step: 250, value: inf ? inf.commission : 500 });
     const phone = el('input', { class: 'field num', type: 'tel', dir: 'ltr', placeholder: '07xxxxxxxxx', value: inf ? inf.phone || '' : app ? app.phone || '' : '' });
@@ -2807,6 +2824,12 @@
       const c = code.value.trim().toUpperCase();
       if (!name.value.trim()) { err.textContent = 'اكتب اسم المؤثر'; return; }
       if (!/^[A-Z0-9]{3,20}$/.test(c)) { err.textContent = 'الكود من 3 لـ 20 حرف إنكليزي أو رقم، بدون فراغات'; return; }
+      // نسأل مرة وحدة لما الكود جديد أو تغيّر، مو كل ما ينعدّل المؤثر
+      if (confusing(c) && c !== String(inf ? inf.code : '').toUpperCase()) {
+        const ok = await confirmDialog('الكود بيه حروف تتخربط',
+          `الكود بيه حرف O أو رقم 0، والناس تخربط بيناتهم. إذا الزبون كتب حرف بدل رقم أو العكس، يطلعله "غير فعال". شوفوا تحت خانة الكود شلون راح ينحفظ بالضبط. الأفضل تختارون كود بدونهم. تحفظونه هيچ؟`, 'احفظه هيچ');
+        if (!ok) return;
+      }
       // لازم أكثر من كود الترحيب (MODONEW = 1,000) حتى المتابعين يحسون بقيمة كود المؤثر
       if (!(Number(discount.value) > 1000)) { err.textContent = 'خصم المؤثر لازم أكثر من خصم الترحيب (1,000 د.ع)'; return; }
       const mail = email.value.trim().toLowerCase();
@@ -2850,7 +2873,7 @@
       el('div', { class: 'help', text: 'الزبون يكتب الكود بخانة كود الخصم بالتطبيق، ويشتغل لأول طلب إله بس. العمولة تنحسب لما الطلب يصير "مكتمل"، وتغييرها يمشي على الطلبات الجاية.' }),
       el('div', { class: 'form-grid' },
         el('div', null, el('label', { class: 'lbl', text: 'اسم المؤثر' }), name),
-        el('div', null, el('label', { class: 'lbl', text: 'الكود' }), code),
+        el('div', null, el('label', { class: 'lbl', text: 'الكود' }), code, codeWarn, codeSpell),
         el('div', null, el('label', { class: 'lbl', text: 'خصم الزبون (د.ع)' }), discount,
           el('div', { class: 'help', text: 'أكثر من كود الترحيب MODONEW (1,000)، حتى المتابعين يحسون كود المؤثر إله قيمة.' })),
         el('div', null, el('label', { class: 'lbl', text: 'عمولة المؤثر لكل طلب (د.ع)' }), commission),
