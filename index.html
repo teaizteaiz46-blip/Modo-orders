@@ -494,6 +494,7 @@
 
   <main class="wrap hidden" id="sec-influencers">
     <div id="inf-apps"></div>
+    <div class="new-clip" id="inf-orders"></div>
     <div class="new-clip" id="inf-editor"></div>
     <div id="inf-list"></div>
   </main>
@@ -656,7 +657,7 @@
     return { node: box, values: () => { commit(); return [...values]; } };
   }
 
-  const money =(v) => Math.round(Number(v) || 0).toLocaleString('en-US');
+  const money = (v) =>Math.round(Number(v) || 0).toLocaleString('en-US');
   const numEl = (v, suffix = '') => el('span', { class: 'num', text: money(v) + suffix });
 
   function normStatus(s) {
@@ -2700,6 +2701,132 @@
     if (!$('inf-editor').childElementCount) renderInfluencerEditor(null);
     loadInfluencers();
     loadInfluencerApps();
+    loadInfluencerOrders();
+  }
+
+  // ---- طلبات أكواد المؤثرين: متابعة، وتغيير الحالة من هنا ----
+  // العمولة يحسبها السيرفر (trg_orders_influencer_earning) لما الطلب يصير "مكتمل"،
+  // فقط لأول طلب للزبون، ومو لرقم المؤثر نفسه أو رقم التجربة. وتنشال إذا الطلب طلع من "مكتمل".
+  const infOrd = { list: [], earned: new Map(), byCoupon: new Map(), filter: 'open', who: 'all' };
+  const INF_ORD_TABS = {
+    open: { label: 'بانتظار التسليم', test: (st) => st !== 'مكتمل' && st !== 'ملغي' },
+    done: { label: 'مكتمل', test: (st) => st === 'مكتمل' },
+    cancelled: { label: 'ملغي', test: (st) => st === 'ملغي' },
+    all: { label: 'الكل', test: () => true },
+  };
+
+  async function loadInfluencerOrders() {
+    const box = $('inf-orders');
+    const fail = (e) => box.replaceChildren(el('div', { class: 'empty error', text: friendlyError(e) }));
+    if (!infOrd.list.length) box.replaceChildren(el('div', { class: 'empty', text: 'جاري تحميل طلبات المؤثرين...' }));
+    const { data: infs, error: e1 } = await db.from('influencers').select('id, name, coupon_id, commission').order('created_at', { ascending: false });
+    if (e1) { fail(e1); return; }
+    infOrd.byCoupon = new Map((infs || []).map((i) => [i.coupon_id, i]));
+    let orders = [];
+    if (infOrd.byCoupon.size) {
+      const { data, error } = await db.from('orders')
+        .select('id, created_at, customer_name, customer_phone, governorate, customer_address, status, total_amount, coupon_id')
+        .in('coupon_id', [...infOrd.byCoupon.keys()]).order('id', { ascending: false }).limit(300);
+      if (error) { fail(error); return; }
+      orders = data || [];
+    }
+    let earned = [];
+    if (orders.length) {
+      const { data, error } = await db.from('influencer_earnings').select('order_id, amount').in('order_id', orders.map((o) => o.id));
+      if (error) { fail(error); return; }
+      earned = data || [];
+    }
+    infOrd.list = orders;
+    infOrd.earned = new Map(earned.map((e) => [e.order_id, Number(e.amount)]));
+    renderInfluencerOrders();
+  }
+
+  function renderInfluencerOrders() {
+    const mine = infOrd.list.filter((o) => infOrd.who === 'all' || String(o.coupon_id) === infOrd.who);
+    const countOf = (k) => mine.filter((o) => INF_ORD_TABS[k].test(normStatus(o.status))).length;
+    const shown = mine.filter((o) => INF_ORD_TABS[infOrd.filter].test(normStatus(o.status)));
+    const who = el('select', { class: 'field', style: 'width:auto;min-height:36px;padding:6px 10px', 'aria-label': 'المؤثر',
+      onchange: (e) => { infOrd.who = e.target.value; renderInfluencerOrders(); } },
+      el('option', { value: 'all', text: 'كل المؤثرين' }),
+      ...[...infOrd.byCoupon.values()].map((i) => el('option', { value: String(i.coupon_id), text: i.name })));
+    who.value = infOrd.who;
+    $('inf-orders').replaceChildren(
+      el('div', { class: 'inf-head' },
+        el('h3', { text: '📦 طلبات أكواد المؤثرين', style: 'margin:0' }),
+        el('span', { class: 'spacer' }),
+        who,
+        el('button', { class: 'btn btn-sm', type: 'button', onclick: loadInfluencerOrders }, '↻ تحديث')),
+      el('div', { class: 'help', style: 'margin:4px 0 10px', text: 'لما يوصل الطلب للزبون اضغطوا «تم التسليم ✅»: الطلب يصير مكتمل، وعمولة المؤثر تنضاف بصفحة "أرباحي" مالته إذا هذا أول طلب للزبون.' }),
+      el('div', { class: 'tabs', style: 'margin-bottom:10px' }, ...Object.keys(INF_ORD_TABS).map((k) => el('button', {
+        class: 'tab', type: 'button', 'aria-pressed': String(infOrd.filter === k),
+        onclick: () => { infOrd.filter = k; renderInfluencerOrders(); },
+      }, INF_ORD_TABS[k].label, el('span', { class: 'count num', text: countOf(k) })))),
+      shown.length
+        ? el('div', { style: 'display:grid;gap:8px' }, ...shown.slice(0, 100).map(renderInfluencerOrder))
+        : el('div', { class: 'empty', style: 'padding:24px 16px', text: infOrd.filter === 'open' ? 'ماكو طلبات بانتظار التسليم 👍' : 'ماكو طلبات هنا' }),
+    );
+  }
+
+  function renderInfluencerOrder(o) {
+    const st = normStatus(o.status);
+    const inf = infOrd.byCoupon.get(o.coupon_id) || {};
+    const earned = infOrd.earned.get(o.id);
+    const next = NEXT_STEP[st];
+    let note;
+    if (earned !== undefined) note = el('div', { class: 'cust-ok', style: 'font-size:13px', text: `✅ انحسبت عمولة ${money(earned)} د.ع بأرباح ${inf.name}` });
+    else if (st === 'مكتمل') note = el('div', { class: 'help', style: 'margin:0', text: '✗ ما انحسبت عمولة: الزبون عنده طلب قبل هذا، أو الرقم مال المؤثر نفسه أو رقم التجربة.' });
+    else if (st === 'ملغي') note = el('div', { class: 'help', style: 'margin:0', text: 'ملغي، ما تنحسب عمولة.' });
+    else note = el('div', { class: 'help', style: 'margin:0', text: `⏳ عمولة ${money(inf.commission)} د.ع تنحسب لما تضغطون «تم التسليم».` });
+
+    let card;
+    const act = async (to) => {
+      if (to === 'مكتمل') {
+        const ok = await confirmDialog(`تسليم الطلب #${o.id}؟`,
+          `الطلب يصير مكتمل، ويوصل الزبون إشعار، وتنحسب عمولة ${inf.name} إذا هذا أول طلب للزبون.`, 'تم التسليم');
+        if (!ok) return;
+      }
+      if (to === 'ملغي') {
+        const ok = await confirmDialog(`إلغاء الطلب #${o.id}؟`, 'راح ترجع القطع للمخزون، وما تگدر ترجع تفتح الطلب بعدها.', 'إلغاء الطلب');
+        if (!ok) return;
+      }
+      const btns = card.querySelectorAll('button');
+      btns.forEach((b) => { b.disabled = true; });
+      try {
+        await updateOrder(o, to, null);
+        toast(`الطلب #${o.id}: ${to}`);
+        if (state.orders.length) renderAll();
+        await loadInfluencerOrders();
+        if (to === 'مكتمل') loadInfluencers();
+      } catch (e) {
+        toast(friendlyError(e), true);
+        btns.forEach((b) => { b.disabled = false; });
+      }
+    };
+
+    const actions = [];
+    if (next && next.to !== 'مكتمل') actions.push(el('button', { class: 'btn btn-sm', type: 'button', onclick: () => act(next.to) }, next.label));
+    if (next) actions.push(el('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: () => act('مكتمل') }, 'تم التسليم ✅'));
+    if (state.orders.some((x) => x.id === o.id)) {
+      actions.push(el('button', { class: 'btn btn-sm', type: 'button', onclick: () => { showSection('orders'); selectOrder(o.id); } }, '📄 التفاصيل'));
+    }
+    if (next) actions.push(el('button', { class: 'btn btn-sm btn-ghost', type: 'button', style: 'color:var(--danger)', onclick: () => act('ملغي') }, 'إلغاء'));
+
+    card = el('div', { class: 'inf-card', style: 'margin:0;gap:6px' },
+      el('div', { class: 'card-row', style: 'flex-wrap:wrap' },
+        el('span', { class: 'card-id num', text: '#' + o.id }),
+        pill(st),
+        el('span', { class: 'badge orange', text: `🎤 ${inf.name || 'مؤثر'}` }),
+        el('span', { class: 'card-time', text: timeAgo(o.created_at) }),
+        el('span', { class: 'spacer' }),
+        el('span', { class: 'card-total num', text: money(o.total_amount) + ' د.ع' })),
+      el('div', { class: 'card-meta' },
+        el('span', { class: 'card-name', style: 'font-size:15px;color:var(--ink)', text: o.customer_name || 'بدون اسم' }),
+        el('span', { class: 'num', text: o.customer_phone || '' }),
+        el('span', { text: o.governorate || o.customer_address || '' })),
+      note,
+      actions.length ? el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, ...actions) : null,
+    );
+    return card;
   }
 
   // ---- طلبات الانضمام من التطبيق (influencer_applications) ----
@@ -2916,7 +3043,7 @@
 
     box.replaceChildren(
       el('h3', { text: inf ? 'تعديل ' + inf.name : app ? 'قبول طلب ' + app.name : 'مؤثر جديد', style: 'margin:0' }),
-      app ? el('div', { class: 'help', style: 'color:#1b7f3b;font-weight:700', text: 'اكتبوا الكود والخصم والعمولة واحفظوا: ينضاف المؤثر وينربط حسابه بالتطبيق، ويشوف "أرباحي" بصفحة حسابه.' }) : null,
+      app ? el('div', { class: 'help', style: 'color:#1b7f3b;font-weight:700', text: 'اكتبوا الكود والخصم والعمولة واحفظوا: ينضاف المؤثر وينربط حسابه بالتطبيق، ويشوف "أرباحي" بصفحة حسابه.' }) : '',
       el('div', { class: 'help', text: 'الزبون يكتب الكود بخانة كود الخصم بالتطبيق، ويشتغل لأول طلب إله بس. العمولة تنحسب لما الطلب يصير "مكتمل"، وتغييرها يمشي على الطلبات الجاية.' }),
       el('div', { class: 'form-grid' },
         el('div', null, el('label', { class: 'lbl', text: 'اسم المؤثر' }), name),
