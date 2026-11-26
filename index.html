@@ -329,6 +329,139 @@
     .chat-wrap:not(.viewing) .chat-view { display: none; }
     .bubble { max-width: 88%; }
   }
+  /* ---------- الأرباح ---------- */
+  #pf { --pf-profit: #2a78d6; --pf-loss: #e34948; --pf-neutral: #B9B2AA; --pf-grid: #EFEBE6; --pf-ok: #1E7B3A; --pf-ok-soft: #E5F5EA; --pf-warn: #8A5A00; --pf-warn-soft: #FFF4DB; }
+  #pf .pf-subtabs { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px; }
+  #pf .pf-period { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 14px; }
+  #pf .pf-seg { display: inline-flex; background: var(--bg); border-radius: 10px; padding: 3px; overflow-x: auto; max-width: 100%; }
+  #pf .pf-seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 8px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  #pf .pf-seg button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  #pf .pf-date { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--muted); }
+  #pf .pf-date .field { width: auto; min-height: 36px; padding: 5px 8px; }
+  #pf .pf-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 600; cursor: pointer; }
+  #pf .pf-toggle input { accent-color: var(--brand); width: 18px; height: 18px; }
+  #pf .chip { border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; font-weight: 600; background: var(--surface); display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; font-size: 13px; }
+  #pf .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  #pf .chip .c { background: rgba(0,0,0,.07); border-radius: 99px; padding: 0 7px; font-size: 12px; }
+  #pf .chip.on .c { background: rgba(255,255,255,.2); }
+  #pf .chip.bad:not(.on) { color: var(--danger); border-color: #F5C6C1; }
+  #pf .pf-sel { width: auto; min-height: 36px; padding: 5px 8px; }
+  #pf .pf-search { width: 200px; min-height: 36px; padding: 5px 10px; }
+  #pf .pf-small { font-size: 12px; }
+  #pf .pf-brand { color: var(--brand-dark); }
+  #pf .pf-pos { color: var(--pf-ok); font-weight: 700; }
+  #pf .pf-neg { color: var(--danger); font-weight: 700; }
+  #pf .pf-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; min-width: 0; }
+  #pf .pf-card h3 { margin: 0 0 2px; font-size: 15px; }
+  #pf .pf-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 10px; }
+  #pf .pf-flush { padding: 0; overflow: hidden; }
+  #pf .pf-thead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 14px 8px; }
+  #pf .pf-thead h3 { margin: 0; }
+  #pf .pf-hero { display: flex; align-items: center; gap: 18px 24px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px; }
+  #pf .pf-hsec { border-inline-start: 1px solid var(--line); padding-inline-start: 20px; }
+  #pf .pf-lbl { color: var(--muted); font-weight: 600; }
+  #pf .pf-big { font-size: 38px; font-weight: 700; line-height: 1.15; }
+  #pf .pf-big small { font-size: 17px; }
+  #pf .pf-mid { font-size: 22px; font-weight: 700; }
+  #pf .pf-delta { font-size: 13px; padding: 2px 8px; border-radius: 99px; vertical-align: middle; }
+  #pf .pf-delta.down { background: var(--danger-soft); color: var(--danger); }
+  #pf .pf-delta.up { background: var(--pf-ok-soft); color: var(--pf-ok); }
+  #pf .pf-kpis { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  #pf .pf-kpis.six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  #pf .pf-kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; text-align: start; font: inherit; color: inherit; min-width: 0; }
+  #pf .pf-kpi .k { color: var(--muted); font-size: 12px; font-weight: 600; }
+  #pf .pf-kpi .v { font-size: 18px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pf .pf-kpi .s { font-size: 11.5px; color: var(--muted); }
+  #pf .pf-kpi.neg .v { color: var(--danger); }
+  #pf button.pf-kpi { cursor: pointer; }
+  #pf .pf-kpi.todo { border-style: dashed; }
+  #pf .pf-kpi.todo .v { color: var(--brand-dark); font-size: 15px; }
+  #pf .pf-grid2 { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 0 14px; }
+  #pf .pf-grid2.even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #pf .pf-grid3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); gap: 0 14px; }
+  #pf .pf-stack { display: grid; align-content: start; }
+  #pf .pf-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 14px; align-items: start; }
+  #pf .pf-split.has-sel { grid-template-columns: minmax(0, 1fr) 360px; }
+  #pf .pf-svg { width: 100%; height: auto; display: block; }
+  #pf .pf-svg text { font-family: var(--font); }
+  #pf .pf-chart { position: relative; }
+  #pf .pf-tip { position: absolute; background: var(--ink); color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none; z-index: 2; }
+  #pf .pf-hrow { display: grid; grid-template-columns: 110px minmax(0, 1fr) 88px 40px; gap: 8px; align-items: center; margin: 5px 0; font-size: 13px; }
+  #pf .pf-hl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #pf .pf-htrack { height: 12px; background: #F4F1ED; border-radius: 4px; position: relative; }
+  #pf .pf-hfill { position: absolute; inset-inline-start: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--pf-profit); }
+  #pf .pf-hfill.l { background: var(--pf-loss); }
+  #pf .pf-hv { text-align: end; font-weight: 700; }
+  #pf .pf-hs { text-align: end; color: var(--muted); font-size: 12px; }
+  #pf .pf-alert { display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+  #pf .pf-alert b { display: block; }
+  #pf .pf-alert.crit { background: var(--danger-soft); }
+  #pf .pf-alert.warn { background: var(--pf-warn-soft); }
+  #pf .pf-alert.ok { background: var(--pf-ok-soft); }
+  #pf .pf-act { margin-inline-start: auto; color: var(--brand-dark); font-weight: 700; white-space: nowrap; border: 0; background: none; padding: 0 2px; }
+  #pf .pf-tw { overflow-x: auto; }
+  #pf .pf-t { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  #pf .pf-t th { text-align: start; color: var(--muted); font-weight: 600; font-size: 12px; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; background: #FBFAF8; }
+  #pf .pf-t td { padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+  #pf .pf-t .n { text-align: end; }
+  #pf .pf-t tr.loss td { background: #FFF7F6; }
+  #pf .pf-t tr.sel td { background: var(--brand-soft); }
+  #pf .pf-t tr.sum td { font-weight: 700; background: #FBFAF8; }
+  #pf .pf-click tr[data-act] { cursor: pointer; }
+  #pf .pf-click tr[data-act]:hover td { background: #FAF8F5; }
+  #pf .pf-click tr.sel[data-act]:hover td { background: var(--brand-soft); }
+  #pf .pf-tags { margin-top: 2px; display: flex; gap: 3px; flex-wrap: wrap; }
+  #pf .pf-tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: #F1EEEA; color: var(--muted); white-space: nowrap; }
+  #pf .pf-tag.free { background: #E6F0FF; color: #1D4ED8; }
+  #pf .pf-tag.cp { background: var(--brand-soft); color: var(--brand-dark); }
+  #pf .pf-tag.bad { background: var(--danger-soft); color: var(--danger); }
+  #pf .pf-tag.warn { background: var(--pf-warn-soft); color: var(--pf-warn); }
+  #pf .pf-cost { width: 86px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 7px; text-align: center; font-weight: 600; background: #fff; font: inherit; }
+  #pf .pf-cost.empty { border-color: var(--brand); background: var(--brand-soft); }
+  #pf .pf-cost:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  #pf .pf-barcell { width: 90px; }
+  #pf .pf-mbar { height: 8px; border-radius: 4px; background: var(--pf-profit); }
+  #pf .pf-mbar.l { background: var(--pf-loss); }
+  #pf .pf-drawer { background: var(--surface); border: 2px solid var(--brand); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.08); position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; margin-bottom: 14px; }
+  #pf .pf-dh { display: flex; align-items: center; gap: 8px; }
+  #pf .pf-dh h3 { margin: 0; font-size: 16px; }
+  #pf .pf-sec { font-weight: 700; margin: 12px 0 4px; font-size: 13px; color: var(--muted); }
+  #pf .pf-line { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  #pf .pf-line.b { font-weight: 700; border-bottom: 0; }
+  #pf .pf-line .d { color: var(--muted); font-size: 12px; }
+  #pf .pf-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; padding: 10px 12px; border-radius: 10px; margin-top: 8px; background: var(--pf-ok-soft); color: var(--pf-ok); }
+  #pf .pf-total.neg { background: var(--danger-soft); color: var(--danger); }
+  #pf .pf-note { background: var(--pf-warn-soft); color: var(--pf-warn); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; margin-top: 10px; }
+  #pf .pf-note.ok { background: var(--pf-ok-soft); color: var(--pf-ok); }
+  #pf .pf-note.bad { background: var(--danger-soft); color: var(--danger); }
+  #pf .pf-note.gray { background: #F4F1ED; color: var(--ink); }
+  #pf .pf-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  #pf .pf-mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+  #pf .pf-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  #pf .pf-num { width: 110px; text-align: center; min-height: 36px; padding: 5px 8px; }
+  #pf .pf-in { min-height: 34px; padding: 4px 8px; min-width: 140px; }
+  #pf .pf-row input[type="date"].field, #pf .pf-row input[type="month"].field { width: auto; min-height: 36px; padding: 5px 8px; }
+  #pf .pf-t td .pf-in { min-width: 210px; }
+  #pf .pf-x { border: 0; background: none; color: var(--muted); font-size: 15px; padding: 0 4px; }
+  #pf .pf-x:hover { color: var(--danger); }
+  #pf .pf-info { border-color: #CFE0F7; background: #F7FAFE; font-size: 13px; }
+  #pf .more { width: calc(100% - 28px); margin: 10px 14px 14px; }
+  @media (max-width: 1100px) {
+    #pf .pf-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    #pf .pf-kpis.six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #pf .pf-grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 979px) {
+    #pf .pf-grid2, #pf .pf-grid2.even, #pf .pf-grid3, #pf .pf-split.has-sel { grid-template-columns: minmax(0, 1fr); }
+    #pf .pf-split.has-sel .pf-drawer { order: -1; position: static; max-height: none; }
+    #pf .pf-hsec { border-inline-start: 0; padding-inline-start: 0; }
+  }
+  @media (max-width: 600px) {
+    #pf .pf-kpis, #pf .pf-kpis.six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #pf .pf-big { font-size: 30px; }
+    #pf .pf-search { width: 100%; }
+    #pf .pf-hrow { grid-template-columns: 84px minmax(0, 1fr) 78px 32px; }
+  }
 </style>
 </head>
 <body>
@@ -414,6 +547,7 @@
       <button type="button" data-section="influencers" aria-pressed="false">المؤثرين</button>
       <button type="button" data-section="gifts" aria-pressed="false">الهدايا 🎁</button>
       <button type="button" data-section="offers" aria-pressed="false">العروض 🏷️</button>
+      <button type="button" data-section="profit" aria-pressed="false">الأرباح 💰</button>
       <button type="button" data-section="appui" aria-pressed="false">واجهة التطبيق 📱</button>
     </nav>
   </header>
@@ -490,6 +624,10 @@
     <div class="new-clip" id="chatbot-card"></div>
     <div class="new-clip" id="push-form"></div>
     <div id="push-log"></div>
+  </main>
+
+  <main class="wrap hidden" id="sec-profit">
+    <div id="pf"></div>
   </main>
 
   <main class="wrap hidden" id="sec-influencers">
@@ -1346,7 +1484,7 @@
 
   function showSection(name) {
     adm.section = name;
-    ['orders', 'chat', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts', 'offers', 'appui'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
+    ['orders', 'chat', 'products', 'clips', 'push', 'looks', 'stories', 'splash', 'influencers', 'gifts', 'offers', 'appui', 'profit'].forEach((s) => $('sec-' + s).classList.toggle('hidden', s !== name));
     document.querySelectorAll('.section-nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === name)));
     if (name !== 'orders' && state.selectedId) closeDetail();
     if (name === 'products' && !adm.productsLoaded) loadProducts();
@@ -1359,6 +1497,7 @@
     if (name === 'gifts') openGifts();
     if (name === 'offers') openOffers();
     if (name === 'appui') openAppUi();
+    if (name === 'profit') openProfit();
     if (name === 'chat') openChat(); else stopThreadPoll();
     window.scrollTo(0, 0);
   }
@@ -2680,6 +2819,953 @@
       );
     }));
   }
+
+  // ================= الأرباح (أدمن بس) =================
+  // كل الأرقام من admin_profit_report. الكلف مخفية عن الموظفين والزبائن، وكل قطعة محفوظة ويّاها كلفتها وقت البيع.
+  // صافي الطلب = البضاعة − كلفتها − الخصم + التوصيل الي دفعه الزبون − كلفة شركة التوصيل − عمولة المؤثر
+  const PF_DAY = 86400000;
+  const pf = {
+    tab: 'overview', preset: 'month', from: null, to: null, compare: true,
+    data: null, m: null, pm: null, range: null, prevRange: null, loading: false, error: null, seq: 0,
+    ord: { filter: 'all', gov: '', st: '', q: '', sort: 'net_asc', sel: null, product: null, limit: 100 },
+    prod: { filter: 'sold', cat: '', q: '', sel: null, limit: 150 },
+    set: { month: null },
+  };
+  const pfEsc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pfPill = (s) => `<span class="pill ${statusCls(s)}">${pfEsc(s)}</span>`;
+  const pfN = (v) => `<span class="num">${money(v)}</span>`;
+  const pfS = (v) => (Math.round(v) < 0 ? `<span class="num">−${money(-v)}</span>` : pfN(v));
+  const pfPct = (v) => (v == null || !isFinite(v) ? '—' : `<span class="num">${v < 0 ? '−' : ''}${Math.abs(Math.round(v * 100))}%</span>`);
+  const pfBg = (ymd) => new Date(`${ymd}T00:00:00+03:00`);
+  const pfYmd = (d) => dayKey.format(d);
+  const pfAdd = (ymd, n) => pfYmd(new Date(pfBg(ymd).getTime() + n * PF_DAY + 3600000));
+  const pfPad = (n) => String(n).padStart(2, '0');
+  const pfDaysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const pfDayFmt = new Intl.DateTimeFormat('ar-IQ-u-nu-latn', { timeZone: TZ, day: 'numeric', month: 'long', year: 'numeric' });
+  const pfShortFmt = new Intl.DateTimeFormat('ar-IQ-u-nu-latn', { timeZone: TZ, day: 'numeric', month: 'numeric' });
+  const pfWeekday = new Intl.DateTimeFormat('ar-IQ-u-nu-latn', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
+
+  function pfRange() {
+    const today = pfYmd(new Date());
+    const [y, m] = today.split('-').map(Number);
+    const first = (yy, mm) => `${yy}-${pfPad(mm)}-01`;
+    switch (pf.preset) {
+      case 'today': return { from: today, to: pfAdd(today, 1) };
+      case 'yesterday': return { from: pfAdd(today, -1), to: today };
+      case 'week': { // الأسبوع يبدي من السبت
+        const dow = new Date(pfBg(today).getTime() + 3 * 3600000).getUTCDay();
+        return { from: pfAdd(today, -((dow + 1) % 7)), to: pfAdd(today, 1) };
+      }
+      case 'lastmonth': { const [py, pm] = m === 1 ? [y - 1, 12] : [y, m - 1]; return { from: first(py, pm), to: first(y, m) }; }
+      case 'custom': return { from: pf.from, to: pfAdd(pf.to, 1) };
+      default: return { from: first(y, m), to: pfAdd(today, 1) };
+    }
+  }
+
+  // الفترة الي قبلها: للأشهر نفس الأيام من الشهر الفائت، والباقي نفس الطول قبلها مباشرة
+  function pfPrevRange(r) {
+    const days = Math.round((pfBg(r.to) - pfBg(r.from)) / PF_DAY);
+    if (pf.preset === 'month' || pf.preset === 'lastmonth') {
+      const [y, m] = r.from.split('-').map(Number);
+      const [py, pm] = m === 1 ? [y - 1, 12] : [y, m - 1];
+      const pFrom = `${py}-${pfPad(pm)}-01`;
+      if (pf.preset === 'lastmonth') return { from: pFrom, to: r.from };
+      return { from: pFrom, to: pfAdd(pFrom, Math.min(days, pfDaysIn(py, pm))) };
+    }
+    return { from: pfAdd(r.from, -days), to: r.from };
+  }
+  const pfRangeLabel = (r) => {
+    const last = pfAdd(r.to, -1);
+    return r.from === last ? pfDayFmt.format(pfBg(r.from)) : `${pfDayFmt.format(pfBg(r.from))} – ${pfDayFmt.format(pfBg(last))}`;
+  };
+
+  function openProfit() {
+    if (adm.role !== 'admin') return;
+    if (!pf.data && !pf.loading) pfLoad(); else pfRender();
+  }
+
+  async function pfLoad() {
+    const seq = ++pf.seq;
+    const r = pfRange();
+    if (!r.from || !r.to || r.to <= r.from) { toast('اختر فترة صحيحة', true); return; }
+    pf.range = r; pf.prevRange = pfPrevRange(r); pf.loading = true; pf.error = null;
+    pfRender();
+    const call = (rr) => db.rpc('admin_profit_report', { p_from: pfBg(rr.from).toISOString(), p_to: pfBg(rr.to).toISOString() });
+    const [cur, prev] = await Promise.all([call(r), pf.compare ? call(pf.prevRange) : Promise.resolve({ data: null })]);
+    if (seq !== pf.seq) return;
+    pf.loading = false;
+    if (cur.error) { pf.error = friendlyError(cur.error); pfRender(); return; }
+    pf.data = cur.data;
+    pf.m = pfModel(cur.data, r);
+    pf.pm = prev && prev.data ? pfModel(prev.data, pf.prevRange) : null;
+    if (pf.ord.sel && !pf.m.byId.has(pf.ord.sel)) pf.ord.sel = null;
+    pfRender();
+  }
+
+  function pfModel(d, r) {
+    const prodById = new Map((d.products || []).map((p) => [p.id, p]));
+    const catById = new Map((d.categories || []).map((c) => [c.id, c.n]));
+    const orders = (d.orders || []).map((o) => ({ ...o, items: [], sales: 0, cost: 0, missing: 0, unk: 0, pcs: 0, gifts: 0, giftCost: 0 }));
+    const byId = new Map(orders.map((o) => [o.id, o]));
+    for (const it of d.items || []) {
+      const o = byId.get(it.o);
+      if (!o) continue;
+      const q = Number(it.q) || 0, t = Number(it.t) || 0, k = it.k == null ? null : Number(it.k);
+      o.items.push(it);
+      o.sales += t;
+      if (k == null) { o.missing += q; o.unk += t; } else o.cost += q * k;
+      if (it.g) { o.gifts += q; if (k != null) o.giftCost += q * k; } else o.pcs += q;
+    }
+    for (const o of orders) {
+      if (!o.items.length) o.sales = Number(o.price) || 0;
+      o.disc = Number(o.disc) || 0; o.dlv = Number(o.dlv) || 0; o.courier = Number(o.courier) || 0; o.comm = Number(o.comm) || 0;
+      o.goods = o.sales - o.unk - o.cost; o.dlvNet = o.dlv - o.courier; o.free = o.dlv === 0;
+      o.net = o.goods - o.disc + o.dlvNet - o.comm;
+      o.day = pfYmd(new Date(o.at));
+    }
+    // المصاريف الشهرية تتوزع على أيام الشهر
+    const days = [];
+    for (let dd = r.from; dd < r.to && days.length < 400; dd = pfAdd(dd, 1)) days.push(dd);
+    const expDay = new Map();
+    let exp = 0;
+    for (const x of d.expenses || []) {
+      const mm = String(x.month).slice(0, 7);
+      const [yy, mo] = mm.split('-').map(Number);
+      const per = (Number(x.amount) || 0) / pfDaysIn(yy, mo);
+      for (const dd of days) if (dd.startsWith(mm)) { expDay.set(dd, (expDay.get(dd) || 0) + per); exp += per; }
+    }
+    const sum = (f) => orders.reduce((s, o) => s + f(o), 0);
+    const T = {
+      orders: orders.length, sales: sum((o) => o.sales), cost: sum((o) => o.cost), giftCost: sum((o) => o.giftCost),
+      disc: sum((o) => o.disc), dlvNet: sum((o) => o.dlvNet), comm: sum((o) => o.comm), pcs: sum((o) => o.pcs),
+      gifts: sum((o) => o.gifts), missing: sum((o) => o.missing), unk: sum((o) => o.unk), free: orders.filter((o) => o.free).length,
+      coupons: orders.filter((o) => o.disc > 0).length, commEarned: sum((o) => (o.comm_earned ? o.comm : 0)), exp,
+    };
+    T.goods = T.sales - T.unk - T.cost;
+    T.net = T.goods - T.disc + T.dlvNet - T.comm - T.exp;
+    // المنتجات
+    const prods = new Map();
+    for (const o of orders) for (const it of o.items) {
+      const key = it.p != null ? it.p : 'n:' + it.n;
+      let p = prods.get(key);
+      if (!p) {
+        const meta = prodById.get(it.p) || null;
+        p = { key, id: it.p, n: (meta && meta.n) || it.n || 'منتج محذوف', meta, pcs: 0, gifts: 0, sales: 0, cost: 0, missing: 0, unk: 0, items: [], orders: new Set(), below: false };
+        prods.set(key, p);
+      }
+      const q = Number(it.q) || 0, t = Number(it.t) || 0, k = it.k == null ? null : Number(it.k);
+      p.sales += t;
+      if (it.g) p.gifts += q; else p.pcs += q;
+      if (k == null) { p.missing += q; p.unk += t; } else p.cost += q * k;
+      p.items.push({ ...it, day: o.day });
+      p.orders.add(o.id);
+      if (!it.g && k != null && Number(it.u) < k) p.below = true;
+    }
+    for (const p of prods.values()) {
+      const known = p.sales - p.unk;
+      p.profit = p.missing && !(p.pcs + p.gifts - p.missing) ? null : known - p.cost;
+      p.margin = p.profit != null && known > 0 ? p.profit / known : null;
+    }
+    return { d, r, orders, byId, T, days, expDay, prods, prodById, catById };
+  }
+
+  // مستويات سعر المنتج: العادي + أسعار الجملة (unit_tiers)
+  function pfLevels(meta) {
+    if (!meta) return [];
+    const price = Number(meta.price) || 0;
+    const out = [{ label: 'سعر عادي', price }];
+    for (const t of meta.tiers || []) {
+      if (!t || t.free_delivery) continue;
+      const pr = t.price != null ? Number(t.price) : t.pct != null ? Math.round(price * (1 - Number(t.pct) / 100)) : null;
+      if (pr == null || (pr === price && !t.mix)) continue;
+      out.push({ label: `${t.mix ? 'مكس' : 'جملة'} ${t.min}+`, price: pr });
+    }
+    return out;
+  }
+  const pfBadTier = (meta) => meta && meta.cost != null && pfLevels(meta).some((l) => l.price <= Number(meta.cost));
+  const pfIsBulkPiece = (p) => /جملة\s*-\s*القطعة/.test(p.n || '');
+
+  // ---------- الرسوم ----------
+  function pfWaterfall(steps) {
+    const W = 820, H = 300, pad = 24, base = H - 40;
+    let run = 0, hi = 0;
+    for (const s of steps) { if (s.total) run = s.v; else run += s.v; hi = Math.max(hi, run, s.total ? s.v : 0); }
+    const sc = (H - 76) / (hi || 1), bw = (W - pad * 2) / steps.length;
+    let out = '';
+    run = 0;
+    steps.forEach((s, i) => {
+      const x = W - pad - (i + 1) * bw + 7, w = bw - 14;
+      let lo, up, col;
+      if (s.total) { lo = 0; up = s.v; col = s.final ? (s.v < 0 ? 'var(--pf-loss)' : 'var(--pf-profit)') : 'var(--pf-neutral)'; run = s.v; }
+      else { lo = Math.min(run, run + s.v); up = Math.max(run, run + s.v); col = s.v < 0 ? 'var(--pf-loss)' : 'var(--pf-profit)'; run += s.v; }
+      const y = base - Math.max(up, 0) * sc, h = Math.max(2, (Math.max(up, 0) - Math.max(lo, 0)) * sc);
+      out += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${col}"><title>${pfEsc(s.label)}: ${money(s.v)}</title></rect>`;
+      if (!s.total && i < steps.length - 1) out += `<line x1="${x - 14}" x2="${x}" y1="${base - Math.max(run, 0) * sc}" y2="${base - Math.max(run, 0) * sc}" stroke="#C9C2BA" stroke-dasharray="3 3"/>`;
+      const val = Math.round(s.v) === 0 ? '—' : (s.v < 0 ? '−' : '') + money(Math.abs(s.v));
+      out += `<text direction="ltr" x="${x + w / 2}" y="${y - 7}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${s.v < 0 ? '#B42318' : '#1E1B18'}">${val}</text>`;
+      out += `<text x="${x + w / 2}" y="${base + 18}" text-anchor="middle" font-size="12" fill="#7C746D">${pfEsc(s.label)}</text>`;
+    });
+    out += `<line x1="${pad}" x2="${W - pad}" y1="${base}" y2="${base}" stroke="#D9D2CB"/>`;
+    return `<svg class="pf-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="من المبيعات للصافي">${out}</svg>`;
+  }
+
+  // أعمدة عمودية (الأول يمين). كل عمود: { v, lab, tip, bad }
+  function pfBars(data, W, H, opts = {}) {
+    const vals = data.map((d) => d.v);
+    const raw = Math.max(...vals, 1), lowV = Math.min(0, ...vals);
+    const step0 = (raw - lowV) / 4, mag = Math.pow(10, Math.floor(Math.log10(step0 || 1)));
+    const step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((s) => s >= step0) || step0;
+    const max = Math.ceil(raw / step) * step, min = lowV < 0 ? (-lowV < step ? lowV * 1.25 : Math.floor(lowV / step) * step) : 0;
+    const padR = opts.axis ? 44 : 10, padL = 10, top = 22, bottom = H - 24;
+    const sc = (bottom - top) / ((max - min) || 1), zero = bottom + min * sc;
+    const bw = (W - padR - padL) / data.length;
+    let out = '';
+    if (opts.axis) for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) {
+      const y = zero - v * sc;
+      out += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="var(--pf-grid)"/><text direction="ltr" x="${W - padR + 6}" y="${y + 4}" font-size="10" fill="#A39B93">${Math.abs(v) >= 1000 ? (v < 0 ? '−' : '') + money(Math.abs(v) / 1000) + 'k' : money(v)}</text>`;
+    }
+    data.forEach((d, i) => {
+      const x = W - padR - (i + 1) * bw + bw * 0.16, w = Math.max(2, bw * 0.68);
+      const h = Math.abs(d.v) * sc, y = d.v >= 0 ? zero - h : zero;
+      const fill = d.v < 0 || d.bad ? 'var(--pf-loss)' : 'var(--pf-profit)';
+      if (Math.round(d.v) === 0) out += `<rect x="${x}" y="${zero - 1}" width="${w}" height="2" fill="#E2DCD5"/>`;
+      else out += `<rect x="${x}" y="${y}" width="${w}" height="${Math.max(2, h)}" rx="3" fill="${fill}"/>`;
+      if (d.tip) out += `<rect class="pf-hit" x="${W - padR - (i + 1) * bw}" y="${top - 10}" width="${bw}" height="${bottom - top + 10}" fill="transparent" data-tip="${pfEsc(d.tip)}"><title>${pfEsc(d.tip.replace(/<br>/g, ' · '))}</title></rect>`;
+      if (d.lab) out += `<text direction="ltr" x="${x + w / 2}" y="${H - 7}" text-anchor="middle" font-size="11" fill="#7C746D">${pfEsc(d.lab)}</text>`;
+      if (opts.vals) out += `<text direction="ltr" x="${x + w / 2}" y="${(d.v >= 0 ? y : y + h) - 5}" text-anchor="middle" font-size="12" font-weight="700" fill="#1E1B18">${money(d.v)}</text>`;
+    });
+    out += `<line x1="${padL}" x2="${W - padR}" y1="${zero}" y2="${zero}" stroke="#CFC8C0"/>`;
+    return `<div class="pf-chart"><svg class="pf-svg" viewBox="0 0 ${W} ${H}">${out}</svg><div class="pf-tip hidden"></div></div>`;
+  }
+
+  function pfHbars(rows) {
+    const max = Math.max(1, ...rows.map((r) => Math.abs(r.v)));
+    return rows.map((r) => `<div class="pf-hrow"><span class="pf-hl" title="${pfEsc(r.l)}">${pfEsc(r.l)}</span>
+      <div class="pf-htrack"><div class="pf-hfill ${r.v < 0 ? 'l' : ''}" style="width:${Math.max(1, Math.abs(r.v) / max * 100)}%"></div></div>
+      <span class="pf-hv ${r.v < 0 ? 'pf-neg' : ''}">${pfS(r.v)}</span><span class="pf-hs">${r.s || ''}</span></div>`).join('');
+  }
+
+  // ---------- الإطار ----------
+  const PF_TABS = { overview: '📊 نظرة عامة', orders: '🧾 ربح الطلبات', products: '🧣 ربح المواد', settings: '⚙️ المصاريف والإعدادات' };
+  const PF_PRESETS = { today: 'اليوم', yesterday: 'أمس', week: 'هذا الأسبوع', month: 'هذا الشهر', lastmonth: 'الشهر الفائت', custom: '📅 من – إلى' };
+
+  function pfRender() {
+    const root = $('pf');
+    if (!root) return;
+    const r = pf.range || pfRange();
+    const custom = pf.preset === 'custom';
+    let body = '';
+    if (pf.error) body = `<div class="empty error">${pfEsc(pf.error)} <button class="btn btn-sm" data-act="reload">إعادة المحاولة</button></div>`;
+    else if (!pf.m) body = '<div class="empty">جاري حساب الأرباح...</div>';
+    else if (pf.tab === 'overview') body = pfOverview();
+    else if (pf.tab === 'orders') body = pfOrders();
+    else if (pf.tab === 'products') body = pfProducts();
+    else body = pfSettings();
+    root.innerHTML = `
+      <div class="pf-subtabs">${Object.entries(PF_TABS).map(([k, v]) => `<button type="button" class="tab" data-act="tab" data-v="${k}" aria-pressed="${pf.tab === k}">${v}</button>`).join('')}</div>
+      <div class="pf-period">
+        <div class="pf-seg">${Object.entries(PF_PRESETS).map(([k, v]) => `<button type="button" data-act="preset" data-v="${k}" class="${pf.preset === k ? 'on' : ''}">${v}</button>`).join('')}</div>
+        ${custom ? `<label class="pf-date">من <input type="date" class="field" data-act="from" value="${pfEsc(pf.from || r.from)}"></label><label class="pf-date">إلى <input type="date" class="field" data-act="to" value="${pfEsc(pf.to || pfAdd(r.to, -1))}"></label>` : ''}
+        <span class="muted">${pfEsc(pfRangeLabel(r))}${pf.loading && pf.m ? ' · جاري التحديث...' : ''}</span>
+        <span class="spacer"></span>
+        <label class="pf-toggle"><input type="checkbox" data-act="compare" ${pf.compare ? 'checked' : ''}> قارن بالفترة الي قبلها</label>
+        <button type="button" class="btn btn-sm" data-act="export" ${pf.m ? '' : 'disabled'}>⬇️ تصدير Excel</button>
+        <button type="button" class="btn btn-sm" data-act="reload" aria-label="تحديث">↻</button>
+      </div>
+      ${body}`;
+    if (pf.tab === 'settings' && pf.m) pfLoadExpenses();
+  }
+
+  // ---------- 📊 نظرة عامة ----------
+  function pfOverview() {
+    const { T, orders, days, expDay, r } = pf.m;
+    if (!T.orders) return '<div class="empty">ماكو طلبات بهالفترة</div>';
+    const P = pf.pm && pf.pm.T;
+    const delta = P && P.net ? (T.net - P.net) / Math.abs(P.net) : null;
+    const isMonth = pf.preset === 'month';
+    const [y, mo] = r.from.split('-').map(Number);
+    const forecast = isMonth && days.length ? T.net / days.length * pfDaysIn(y, mo) : null;
+    const goodsCost = T.cost - T.giftCost;
+    const steps = [
+      { label: 'المبيعات', v: T.sales, total: 1 }, ...(T.unk ? [{ label: 'بلا كلفة', v: -T.unk }] : []), { label: 'كلفة البضاعة', v: -goodsCost }, { label: 'الهدايا', v: -T.giftCost },
+      { label: 'الخصومات', v: -T.disc }, { label: 'التوصيل', v: T.dlvNet }, { label: 'العمولات', v: -T.comm },
+      { label: 'المصاريف', v: -T.exp }, { label: 'صافي الربح', v: T.net, total: 1, final: 1 },
+    ];
+    // اليومي (أو أسبوعي إذا الفترة طويلة)
+    const netByDay = new Map(), cntByDay = new Map();
+    for (const o of orders) { netByDay.set(o.day, (netByDay.get(o.day) || 0) + o.net); cntByDay.set(o.day, (cntByDay.get(o.day) || 0) + 1); }
+    let series;
+    if (days.length <= 62) {
+      series = days.map((dd, i) => {
+        const v = (netByDay.get(dd) || 0) - (expDay.get(dd) || 0);
+        const n = cntByDay.get(dd) || 0;
+        return { v, lab: days.length <= 16 || i % 2 === 0 ? String(Number(dd.slice(8))) : '', tip: `${pfWeekday.format(pfBg(dd))} · ${n} طلب<br><b>صافي ${v < 0 ? '−' : ''}${money(Math.abs(v))} د.ع</b>` };
+      });
+    } else {
+      series = [];
+      for (let i = 0; i < days.length; i += 7) {
+        const wk = days.slice(i, i + 7);
+        const v = wk.reduce((s, dd) => s + (netByDay.get(dd) || 0) - (expDay.get(dd) || 0), 0);
+        const n = wk.reduce((s, dd) => s + (cntByDay.get(dd) || 0), 0);
+        series.push({ v, lab: pfShortFmt.format(pfBg(wk[0])), tip: `أسبوع ${pfShortFmt.format(pfBg(wk[0]))} · ${n} طلب<br><b>صافي ${money(v)} د.ع</b>` });
+      }
+    }
+    return `
+      <div class="pf-hero">
+        <div><div class="pf-lbl">صافي الربح</div><div class="pf-big ${T.net < 0 ? 'pf-neg' : ''}">${pfS(T.net)} <small>د.ع</small></div>
+          <div class="muted pf-small">بعد كلفة البضاعة والهدايا والخصومات والتوصيل والعمولات${T.exp ? ' والمصاريف' : ' · <b class="pf-brand">قبل الإعلانات (ما مسجلة)</b>'}</div></div>
+        ${P ? `<div class="pf-hsec"><div class="pf-lbl">مقارنة بـ ${pfEsc(pfRangeLabel(pf.prevRange))}</div>
+          <div class="pf-mid">${pfS(P.net)} ${delta != null ? `<span class="pf-delta ${delta < 0 ? 'down' : 'up'}">${delta < 0 ? '▼' : '▲'} ${Math.abs(Math.round(delta * 100))}%</span>` : ''}</div>
+          <div class="muted pf-small">${P.orders ? `نسبة ربح البضاعة ${pfPct(P.sales - P.unk ? P.goods / (P.sales - P.unk) : null)} ← ${pfPct(T.sales - T.unk ? T.goods / (T.sales - T.unk) : null)}` : 'ماكو طلبات بالفترة الي قبلها'}</div></div>` : ''}
+        <div class="pf-hsec"><div class="pf-lbl">متوسط ربح الطلب</div><div class="pf-mid">${pfS(T.net / T.orders)}</div>
+          <div class="muted pf-small">ربح القطعة ${pfS(T.pcs ? T.net / T.pcs : 0)}</div></div>
+        ${forecast != null ? `<div class="pf-hsec"><div class="pf-lbl">توقع آخر الشهر</div><div class="pf-mid">~${pfS(forecast)}</div><div class="muted pf-small">إذا استمر نفس المعدل</div></div>` : ''}
+      </div>
+      <div class="pf-kpis">
+        <div class="pf-kpi"><div class="k">المبيعات</div><div class="v">${pfN(T.sales)}</div><div class="s">${T.orders} طلب · ${T.pcs} قطعة</div></div>
+        <div class="pf-kpi"><div class="k">ربح البضاعة</div><div class="v">${pfS(T.goods)}</div><div class="s">نسبة ${pfPct(T.sales - T.unk ? T.goods / (T.sales - T.unk) : null)}${T.unk ? ' · <span class="pf-neg">ناقص</span>' : ''}</div></div>
+        <div class="pf-kpi neg"><div class="k">كلفة البضاعة</div><div class="v">${pfS(-goodsCost)}</div><div class="s">${T.pcs} قطعة مباعة</div></div>
+        <div class="pf-kpi neg"><div class="k">🎁 الهدايا</div><div class="v">${pfS(-T.giftCost)}</div><div class="s">${T.gifts} هدية</div></div>
+        <div class="pf-kpi neg"><div class="k">🏷️ الخصومات</div><div class="v">${pfS(-T.disc)}</div><div class="s">${T.coupons} طلب بخصم</div></div>
+        <div class="pf-kpi ${T.dlvNet < 0 ? 'neg' : ''}"><div class="k">🚚 التوصيل عليك</div><div class="v">${pfS(T.dlvNet)}</div><div class="s">${T.free} مجاني · ${T.orders - T.free} مدفوع</div></div>
+        <div class="pf-kpi neg"><div class="k">🎤 عمولات المؤثرين</div><div class="v">${pfS(-T.comm)}</div><div class="s">${T.comm > T.commEarned ? `منها ${money(T.comm - T.commEarned)} متوقعة` : 'كلها محسوبة'}</div></div>
+        ${T.exp ? `<div class="pf-kpi neg"><div class="k">📣 المصاريف</div><div class="v">${pfS(-T.exp)}</div><div class="s">موزعة على أيام الشهر</div></div>`
+          : '<button type="button" class="pf-kpi todo" data-act="tab" data-v="settings"><div class="k">📣 الإعلانات والمصاريف</div><div class="v">+ سجّلها</div><div class="s">حتى يطلع الصافي الحقيقي</div></button>'}
+      </div>
+      <div class="pf-grid2">
+        <div class="pf-card"><h3>من المبيعات للصافي</h3><div class="pf-sub">كل خصم من وين إجه</div>${pfWaterfall(steps)}</div>
+        <div class="pf-card"><h3>⚠️ يحتاج انتباهك</h3><div class="pf-sub">تنبيهات تطلع تلقائياً من الأرقام</div>${pfAlerts()}</div>
+      </div>
+      <div class="pf-card"><h3>صافي الربح ${days.length <= 62 ? 'كل يوم' : 'كل أسبوع'}</h3><div class="pf-sub">الأعمدة الحمر خسارة · مرّر على أي عمود تشوف التفاصيل</div>
+        ${pfBars(series, 1180, 230, { axis: 1 })}</div>`;
+  }
+
+  function pfAlerts() {
+    const { orders, prods, T, d } = pf.m;
+    const out = [];
+    const losing = orders.filter((o) => o.net < 0);
+    if (losing.length) out.push(['crit', `${losing.length} طلب خسران بهالفترة`, `مجموع الخسارة ${money(-losing.reduce((s, o) => s + o.net, 0))} د.ع`, 'عرضها', 'go-loss']);
+    const below = [...prods.values()].filter((p) => p.below && p.profit < 0).sort((a, b) => a.profit - b.profit);
+    for (const p of below.slice(0, 2)) out.push(['crit', p.n, `انباع أقل من كلفته · خسارة ${money(-p.profit)}`, 'فتح', 'go-prod', p.key]);
+    const badTier = (d.products || []).filter((p) => p.stock > 0 && pfBadTier(p));
+    if (badTier.length) {
+      const p = badTier[0];
+      out.push(['warn', badTier.length === 1 ? p.n : `${badTier.length} منتجات سعر جملتها ≤ الكلفة`, badTier.length === 1 ? `سعر جملة يساوي أو أقل من الكلفة (${money(p.cost)})` : `مثلاً: ${p.n}`, 'عرضها', 'go-badtier']);
+    }
+    if (T.missing) out.push(['warn', `${T.missing} قطعة بالفترة بدون كلفة`, `مبيعاتها ${money(T.unk)} ما محسوب ربحها`, 'إكمال', 'go-nocost']);
+    const noCost = (d.products || []).filter((p) => p.cost == null && p.stock > 0).length;
+    if (noCost) out.push(['warn', `${noCost} منتج متوفر بدون كلفة`, 'أرباحهم ما تنحسب صح لما ينباعون', 'إكمال', 'go-nocost']);
+    if (d.stale && d.stale.n) out.push(['warn', `${d.stale.n} طلب «قيد المراجعة» صارلهم أكثر من أسبوع`, 'إذا ما انبعثوا، حوّلوهم ملغي حتى ترجع القطع للمخزون', 'مراجعة', 'go-stale']);
+    if (!out.length) return '<div class="pf-alert ok"><span>✅</span><div><b>كلشي تمام</b>ماكو طلبات خسرانة ولا منتجات بدون كلفة</div></div>';
+    return out.map(([c, t, s, a, act, v]) => `<div class="pf-alert ${c}"><span>${c === 'crit' ? '🔴' : '🟠'}</span><div><b>${pfEsc(t)}</b>${pfEsc(s)}</div>
+      <button type="button" class="pf-act" data-act="${act}" ${v != null ? `data-v="${pfEsc(v)}"` : ''}>${a} ←</button></div>`).join('');
+  }
+
+  // ---------- 🧾 ربح الطلبات ----------
+  const PF_OFILTERS = {
+    all: ['الكل', () => true], loss: ['🔴 خسرانة', (o) => o.net < 0], low: ['ربح أقل من 2,000', (o) => o.net >= 0 && o.net < 2000],
+    free: ['🚚 توصيل مجاني', (o) => o.free], coupon: ['🏷️ بكوبون', (o) => o.disc > 0], inf: ['🎤 كود مؤثر', (o) => !!o.inf],
+    gift: ['🎁 بيه هدية', (o) => o.gifts > 0], nocost: ['بدون كلفة', (o) => o.missing > 0],
+  };
+  function pfFilteredOrders() {
+    const { orders } = pf.m;
+    const s = pf.ord;
+    const q = s.q.trim().replace('#', '');
+    let list = orders.filter(PF_OFILTERS[s.filter][1]);
+    if (s.gov) list = list.filter((o) => (o.gov || '') === s.gov);
+    if (s.st) list = list.filter((o) => o.st === s.st);
+    if (s.product != null) list = list.filter((o) => o.items.some((it) => String(it.p != null ? it.p : 'n:' + it.n) === String(s.product)));
+    if (q) list = list.filter((o) => String(o.id) === q || (o.name || '').includes(q) || toDigits(o.name).includes(q));
+    const sorts = { net_asc: (a, b) => a.net - b.net, net_desc: (a, b) => b.net - a.net, new: (a, b) => b.id - a.id, sales: (a, b) => b.sales - a.sales };
+    return list.sort(sorts[s.sort] || sorts.net_asc);
+  }
+
+  function pfOrders() {
+    const { orders, prods } = pf.m;
+    if (!orders.length) return '<div class="empty">ماكو طلبات بهالفترة</div>';
+    const s = pf.ord;
+    const list = pfFilteredOrders();
+    const govs = [...new Set(orders.map((o) => o.gov || ''))].filter(Boolean).sort();
+    const sts = [...new Set(orders.map((o) => o.st))];
+    // التوزيع
+    const bk = [0, 0, 0, 0, 0];
+    for (const o of orders) bk[o.net < 0 ? 0 : o.net < 2000 ? 1 : o.net < 5000 ? 2 : o.net < 10000 ? 3 : 4]++;
+    // مجاني ضد مدفوع
+    const grp = (f) => { const g = orders.filter(f); const n = g.length || 1; return { n: g.length, sales: g.reduce((a, o) => a + o.sales, 0) / n, net: g.reduce((a, o) => a + o.net, 0) / n, loss: g.filter((o) => o.net < 0).length, dlv: g.reduce((a, o) => a + o.dlvNet, 0) }; };
+    const F = grp((o) => o.free), Pd = grp((o) => !o.free);
+    // المحافظات
+    const gm = new Map();
+    for (const o of orders) { const k = o.gov || 'بدون محافظة'; const g = gm.get(k) || { v: 0, n: 0 }; g.v += o.net; g.n++; gm.set(k, g); }
+    const govRows = [...gm.entries()].sort((a, b) => b[1].v - a[1].v).map(([l, g]) => ({ l, v: g.v, s: String(g.n) }));
+    // الكوبونات
+    const cm = new Map();
+    for (const o of orders) { const k = o.coupon || ''; const c = cm.get(k) || { n: 0, disc: 0, net: 0, inf: o.inf }; c.n++; c.disc += o.disc; c.net += o.net; cm.set(k, c); }
+    const cps = [...cm.entries()].sort((a, b) => b[1].n - a[1].n);
+    const sel = s.sel != null ? pf.m.byId.get(s.sel) : null;
+    const prodChip = s.product != null ? (prods.get(s.product) || prods.get(Number(s.product))) : null;
+    const tagsOf = (o) => [o.free ? '<span class="pf-tag free">🚚 مجاني</span>' : '', o.disc > 0 ? `<span class="pf-tag cp">🏷️ ${pfEsc(o.coupon || 'خصم')}</span>` : '', o.inf ? '<span class="pf-tag cp">🎤 مؤثر</span>' : '', o.missing ? '<span class="pf-tag bad">بدون كلفة</span>' : ''].join('');
+    return `
+      <div class="pf-period pf-filters">
+        ${Object.entries(PF_OFILTERS).map(([k, [lab, f]]) => { const n = orders.filter(f).length; return k === 'nocost' && !n ? '' : `<button type="button" class="chip ${s.filter === k ? 'on' : ''} ${k === 'loss' ? 'bad' : ''}" data-act="ofilter" data-v="${k}">${lab} <span class="c">${n}</span></button>`; }).join('')}
+        ${prodChip ? `<button type="button" class="chip on" data-act="oprod-clear">🧣 ${pfEsc(prodChip.n)} ✕</button>` : ''}
+        <span class="spacer"></span>
+        <select class="field pf-sel" data-act="ogov"><option value="">كل المحافظات</option>${govs.map((g) => `<option ${s.gov === g ? 'selected' : ''}>${pfEsc(g)}</option>`).join('')}</select>
+        <select class="field pf-sel" data-act="ost"><option value="">كل الحالات</option>${sts.map((g) => `<option ${s.st === g ? 'selected' : ''}>${pfEsc(g)}</option>`).join('')}</select>
+        <input class="field pf-search" type="search" placeholder="🔍 رقم الطلب أو الاسم" value="${pfEsc(s.q)}" data-act="oq">
+      </div>
+      <div class="pf-grid3">
+        <div class="pf-card"><h3>الطلبات حسب الربح</h3><div class="pf-sub">شكد طلب بكل مستوى ربح (بعد التوصيل)</div>
+          ${pfBars([{ v: bk[0], lab: 'خسارة', bad: 1 }, { v: bk[1], lab: '0–2 آلاف' }, { v: bk[2], lab: '2–5 آلاف' }, { v: bk[3], lab: '5–10 آلاف' }, { v: bk[4], lab: '+10 آلاف' }], 380, 200, { vals: 1 })}</div>
+        <div class="pf-card"><h3>🚚 التوصيل المجاني يستاهل؟</h3><div class="pf-sub">مقارنة الطلبات المجانية بالمدفوعة</div>
+          <table class="pf-t"><tr><th></th><th class="n">مجاني</th><th class="n">مدفوع</th></tr>
+          <tr><td>عدد الطلبات</td><td class="n">${F.n}</td><td class="n">${Pd.n}</td></tr>
+          <tr><td>متوسط البضاعة</td><td class="n">${pfN(F.sales)}</td><td class="n">${pfN(Pd.sales)}</td></tr>
+          <tr><td>متوسط صافي الربح</td><td class="n ${F.net >= Pd.net ? 'pf-pos' : ''}">${pfS(F.net)}</td><td class="n ${Pd.net > F.net ? 'pf-pos' : ''}">${pfS(Pd.net)}</td></tr>
+          <tr><td>طلبات خسرانة</td><td class="n pf-neg">${F.loss}</td><td class="n pf-neg">${Pd.loss}</td></tr>
+          <tr><td>كلّفك التوصيل</td><td class="n pf-neg">${pfS(F.dlv)}</td><td class="n ${Pd.dlv < 0 ? 'pf-neg' : ''}">${pfS(Pd.dlv)}</td></tr></table>
+          ${F.n && Pd.n ? (F.net >= Pd.net ? '<div class="pf-note ok">✅ الطلب المجاني بالمتوسط يربّح أكثر، لأن الزبون يشتري أكثر</div>' : '<div class="pf-note">⚠️ الطلب المجاني بالمتوسط يربّح أقل من المدفوع</div>') : ''}</div>
+        <div class="pf-card"><h3>الربح حسب المحافظة</h3><div class="pf-sub">صافي الربح · وعدد الطلبات</div>${pfHbars(govRows)}</div>
+      </div>
+      <div class="pf-split ${sel ? 'has-sel' : ''}">
+        <div>
+          <div class="pf-card"><h3>🏷️ الكوبونات شكد كلّفتك وشكد جابت</h3><div class="pf-sub">كل كوبون: كم مرة انستخدم، مجموع الخصم، وصافي ربح طلباته</div>
+            <div class="pf-tw"><table class="pf-t"><tr><th>الكوبون</th><th class="n">الطلبات</th><th class="n">مجموع الخصم</th><th class="n">صافي ربح الطلبات</th><th class="n">متوسط الطلب</th></tr>
+            ${cps.map(([k, c]) => `<tr class="${c.net < 0 ? 'loss' : ''}"><td>${k ? `<b>${pfEsc(k)}</b>${c.inf ? ` <span class="pf-tag cp">🎤 ${pfEsc(c.inf)}</span>` : ''}` : 'بدون كوبون'}</td><td class="n">${c.n}</td>
+              <td class="n ${c.disc ? 'pf-neg' : 'muted'}">${pfS(-c.disc)}</td><td class="n ${c.net < 0 ? 'pf-neg' : ''}">${pfS(c.net)}</td><td class="n ${c.net < 0 ? 'pf-neg' : ''}">${pfS(c.net / c.n)}</td></tr>`).join('')}
+            </table></div></div>
+          <div class="pf-card pf-flush">
+            <div class="pf-thead"><h3>الطلبات <span class="muted pf-small">${list.length} طلب · اضغط أي طلب تشوف حسابه</span></h3><span class="spacer"></span>
+              <select class="field pf-sel" data-act="osort">${[['net_asc', 'الأقل ربح أول'], ['net_desc', 'الأكثر ربح أول'], ['new', 'الأحدث أول'], ['sales', 'الأكبر مبلغ أول']].map(([k, l]) => `<option value="${k}" ${s.sort === k ? 'selected' : ''}>ترتيب: ${l}</option>`).join('')}</select></div>
+            <div class="pf-tw"><table class="pf-t pf-click"><tr><th>الطلب</th><th class="n">الصافي</th><th>المحافظة</th><th class="n">القطع</th><th class="n">البضاعة</th><th class="n">الكلفة</th><th class="n">الخصم</th><th class="n">التوصيل</th><th class="n">عمولة</th></tr>
+            ${list.slice(0, s.limit).map((o) => `<tr class="${o.id === s.sel ? 'sel' : o.net < 0 ? 'loss' : ''}" data-act="osel" data-v="${o.id}">
+              <td><b>#${o.id}</b> <span class="muted pf-small">${pfShortFmt.format(new Date(o.at))}</span> ${pfPill(o.st)}<div class="pf-tags">${tagsOf(o)}</div></td>
+              <td class="n ${o.net < 0 ? 'pf-neg' : 'pf-pos'}">${pfS(o.net)}</td><td>${pfEsc(o.gov || '')}<div class="muted pf-small">${pfEsc(o.name || '')}</div></td>
+              <td class="n">${o.pcs}${o.gifts ? ' + 🎁' : ''}</td><td class="n">${pfN(o.sales)}</td>
+              <td class="n muted">${o.missing ? '<span class="pf-neg">؟</span> ' : ''}${pfS(-o.cost)}</td>
+              <td class="n">${o.disc ? pfS(-o.disc) : '<span class="muted">—</span>'}</td>
+              <td class="n ${o.dlvNet < 0 ? 'pf-neg' : ''}">${pfS(o.dlvNet)}</td>
+              <td class="n">${o.comm ? pfS(-o.comm) : '<span class="muted">—</span>'}</td></tr>`).join('')}
+            ${list.length ? `<tr class="sum"><td>المجموع · ${list.length} طلب</td><td class="n">${pfS(list.reduce((a, o) => a + o.net, 0))}</td><td colspan="2"></td><td class="n">${pfN(list.reduce((a, o) => a + o.sales, 0))}</td><td class="n">${pfS(-list.reduce((a, o) => a + o.cost, 0))}</td>
+              <td class="n">${pfS(-list.reduce((a, o) => a + o.disc, 0))}</td><td class="n">${pfS(list.reduce((a, o) => a + o.dlvNet, 0))}</td><td class="n">${pfS(-list.reduce((a, o) => a + o.comm, 0))}</td></tr>`
+              : '<tr><td colspan="9" class="muted" style="text-align:center;padding:24px">ماكو طلبات بهالفلتر</td></tr>'}
+            </table></div>
+            ${list.length > s.limit ? `<button type="button" class="btn more" data-act="omore">عرض المزيد (${list.length - s.limit})</button>` : ''}
+          </div>
+        </div>
+        ${sel ? pfOrderDrawer(sel) : ''}
+      </div>`;
+  }
+
+  function pfOrderDrawer(o) {
+    const lines = o.items.map((it) => {
+      const q = Number(it.q) || 0, t = Number(it.t) || 0, k = it.k == null ? null : Number(it.k);
+      const pr = k == null ? null : t - q * k;
+      return `<div class="pf-line"><div>${it.g ? '🎁 ' : ''}${pfEsc(it.n)}${it.c ? ` <span class="muted">· ${pfEsc(it.c)}</span>` : ''}
+        <div class="d">${it.g ? 'هدية ببلاش' : `${q} × ${money(it.u)}`} · ${k == null ? '<span class="pf-neg">بدون كلفة</span>' : `كلفة ${money(k)}`}${!it.g && k != null && Number(it.u) < k ? ' · <span class="pf-neg">أقل من الكلفة</span>' : ''}</div></div>
+        <span class="${pr == null ? 'muted' : pr < 0 ? 'pf-neg' : 'pf-pos'}">${pr == null ? '؟' : (pr > 0 ? '+' : '') + pfS(pr)}</span></div>`;
+    }).join('');
+    const why = pfWhy(o);
+    return `<div class="pf-drawer" id="pf-drawer">
+      <div class="pf-dh"><h3>حساب الطلب #${o.id}</h3>${pfPill(o.st)}<span class="spacer"></span><button type="button" class="btn btn-ghost btn-sm" data-act="osel-close" aria-label="إغلاق">✕</button></div>
+      <div class="muted pf-small">${pfEsc(pfDayFmt.format(new Date(o.at)))} · ${pfEsc(o.gov || '')} · ${o.pcs} قطعة${o.gifts ? ` + ${o.gifts} هدية` : ''}${o.name ? ` · ${pfEsc(o.name)}` : ''}</div>
+      <div class="pf-sec">القطع</div>${lines || '<div class="muted">ماكو قطع مسجلة</div>'}
+      <div class="pf-line b"><span>ربح البضاعة</span><span>${pfS(o.goods)}</span></div>
+      <div class="pf-sec">بعدها</div>
+      <div class="pf-line"><div>🏷️ الخصم${o.coupon ? ` · كوبون ${pfEsc(o.coupon)}` : ''}</div><span class="${o.disc ? 'pf-neg' : 'muted'}">${o.disc ? pfS(-o.disc) : '—'}</span></div>
+      <div class="pf-line"><div>🚚 التوصيل<div class="d">الزبون دفع ${money(o.dlv)} · شركة التوصيل ${money(o.courier)}</div></div><span class="${o.dlvNet < 0 ? 'pf-neg' : o.dlvNet > 0 ? 'pf-pos' : 'muted'}">${o.dlvNet ? pfS(o.dlvNet) : '—'}</span></div>
+      <div class="pf-line"><div>🎤 عمولة مؤثر${o.inf ? ` · ${pfEsc(o.inf)}${o.comm && !o.comm_earned ? ' (متوقعة لما يكتمل)' : ''}` : ''}</div><span class="${o.comm ? 'pf-neg' : 'muted'}">${o.comm ? pfS(-o.comm) : '—'}</span></div>
+      <div class="pf-total ${o.net < 0 ? 'neg' : ''}"><span>صافي الطلب</span><span>${pfS(o.net)}</span></div>
+      ${o.note ? `<div class="pf-note gray">📝 ${pfEsc(o.note)}</div>` : ''}
+      ${why.length ? `<div class="pf-note">💡 ${o.net < 0 ? 'ليش خسر: ' : ''}${why.map(pfEsc).join('، ')}.</div>` : ''}
+      <div class="pf-actions"><button type="button" class="btn btn-sm" data-act="oopen" data-v="${o.id}">📄 فتح الطلب</button>
+        <button type="button" class="btn btn-sm" data-act="oexclude" data-v="${o.id}">🚫 استثنيه من الحساب</button></div>
+    </div>`;
+  }
+
+  function pfWhy(o) {
+    const r = [];
+    if (o.missing) r.push(`${o.missing} قطعة بدون كلفة، فالربح الحقيقي أقل`);
+    if (o.net >= 0) return r;
+    if (o.free && o.courier > 0) r.push(`التوصيل مجاني وكلّفك ${money(o.courier)}`);
+    if (o.gifts) r.push(`ويّاه هدية كلفتها ${money(o.giftCost)}`);
+    if (o.disc) r.push(`خصم ${money(o.disc)}${o.coupon ? ` (${o.coupon})` : ''}`);
+    if (o.comm) r.push(`عمولة مؤثر ${money(o.comm)}`);
+    const below = o.items.filter((it) => !it.g && it.k != null && Number(it.u) < Number(it.k)).length;
+    if (below) r.push(`${below} قطعة انباعت أقل من كلفتها`);
+    if (o.free && o.goods < o.courier) r.push('ربح البضاعة أقل من كلفة التوصيل');
+    return r;
+  }
+
+  // ---------- 🧣 ربح المواد ----------
+  function pfProdRows() {
+    const { prods, d, catById } = pf.m;
+    const s = pf.prod;
+    const sold = [...prods.values()];
+    let rows;
+    if (s.filter === 'nocost' || s.filter === 'all' || s.filter === 'badtier') {
+      rows = (d.products || []).map((meta) => prods.get(meta.id) || { key: meta.id, id: meta.id, n: meta.n, meta, pcs: 0, gifts: 0, sales: 0, cost: 0, missing: 0, unk: 0, items: [], orders: new Set(), profit: 0, margin: null });
+      for (const p of sold) if (p.id == null) rows.push(p);
+      if (s.filter === 'nocost') rows = rows.filter((p) => p.meta && p.meta.cost == null && (p.meta.stock > 0 || p.pcs > 0));
+      if (s.filter === 'badtier') rows = rows.filter((p) => p.meta && p.meta.stock > 0 && pfBadTier(p.meta));
+    } else rows = sold;
+    if (s.filter === 'loss') rows = rows.filter((p) => p.profit < 0);
+    if (s.filter === 'weak') rows = rows.filter((p) => p.pcs > 0 && p.profit != null && p.profit >= 0 && p.margin != null && p.margin < 0.15);
+    if (s.cat) rows = rows.filter((p) => p.meta && String(p.meta.cat) === s.cat);
+    if (s.q.trim()) rows = rows.filter((p) => (p.n || '').includes(s.q.trim()));
+    const pv = (p) => (p.profit == null ? -1e15 : p.profit);
+    rows.sort((a, b) => pv(b) - pv(a) || b.pcs - a.pcs || String(a.n).localeCompare(String(b.n)));
+    return { rows, catById };
+  }
+
+  function pfProducts() {
+    const { T, prods, d, catById, orders } = pf.m;
+    const s = pf.prod;
+    const all = d.products || [];
+    let stCost = 0, stRetail = 0, stPcs = 0;
+    for (const p of all) if (p.stock > 0 && p.cost != null) { stCost += p.stock * p.cost; stRetail += p.stock * (Number(p.price) || 0); stPcs += p.stock; }
+    const sold = [...prods.values()];
+    const losing = sold.filter((p) => p.profit < 0);
+    const noCostStock = all.filter((p) => p.cost == null && p.stock > 0).length;
+    const noCostAll = all.filter((p) => p.cost == null).length;
+    // الفئات
+    const cm = new Map();
+    for (const p of sold) { if (p.profit == null) continue; const k = p.meta && catById.get(p.meta.cat) || 'بدون فئة'; const c = cm.get(k) || { v: 0, s: 0 }; c.v += p.profit; c.s += p.sales - p.unk; cm.set(k, c); }
+    const catRows = [...cm.entries()].sort((a, b) => b[1].v - a[1].v).map(([l, c]) => ({ l, v: c.v, s: c.s ? pfPct(c.v / c.s) : '' }));
+    // مستويات السعر
+    const lv = { n: { l: 'سعر عادي', q: 0, s: 0, p: 0, ks: 0 }, w: { l: 'سعر جملة أو عرض (6+ / 12+ / مكس / باقة)', q: 0, s: 0, p: 0, ks: 0 }, b: { l: 'منتجات «جملة - القطعة»', q: 0, s: 0, p: 0, ks: 0 }, g: { l: '🎁 هدايا', q: 0, s: 0, p: 0, ks: 0 } };
+    for (const o of orders) for (const it of o.items) {
+      const meta = pf.m.prodById.get(it.p);
+      const k = it.k == null ? null : Number(it.k), q = Number(it.q) || 0, t = Number(it.t) || 0;
+      const key = it.g ? 'g' : pfIsBulkPiece({ n: it.n }) || (meta && catById.get(meta.cat) === 'جملة') ? 'b' : !meta || Number(it.u) >= Number(meta.price) ? 'n' : 'w';
+      lv[key].q += q; lv[key].s += t; if (k != null) { lv[key].p += t - q * k; lv[key].ks += t; }
+    }
+    const lvMax = Math.max(1, ...Object.values(lv).map((x) => Math.abs(x.p)));
+    const { rows } = pfProdRows();
+    const sel = s.sel != null ? (prods.get(s.sel) || rows.find((p) => String(p.key) === String(s.sel))) : null;
+    const chip = (k, lab, n, cls = '') => `<button type="button" class="chip ${s.filter === k ? 'on' : ''} ${cls}" data-act="pfilter" data-v="${k}">${lab} <span class="c">${n}</span></button>`;
+    const tags = (p) => {
+      const t = [];
+      const meta = p.meta;
+      if (meta && meta.cost == null) t.push('<span class="pf-tag bad">بدون كلفة</span>');
+      if (p.below && p.profit < 0) t.push('<span class="pf-tag bad">انباع أقل من الكلفة</span>');
+      if (pfBadTier(meta)) t.push('<span class="pf-tag bad">سعر جملة ≤ الكلفة</span>');
+      if (p.gifts && !p.pcs) t.push(`<span class="pf-tag">🎁 ${p.gifts} هدية</span>`);
+      else if (p.pcs && p.profit != null && p.profit >= 0 && p.margin != null && p.margin < 0.15) t.push(`<span class="pf-tag warn">نسبة ${Math.round(p.margin * 100)}%</span>`);
+      if (meta && p.pcs && meta.stock > 0 && meta.stock <= 5) t.push(`<span class="pf-tag warn">مخزون ${meta.stock} بس</span>`);
+      if (!p.pcs && !p.gifts) t.push('<span class="pf-tag">ما انباع بالفترة</span>');
+      return t.join('');
+    };
+    return `
+      <div class="pf-kpis six">
+        <div class="pf-kpi"><div class="k">ربح البضاعة</div><div class="v">${pfS(T.goods)}</div><div class="s">نسبة ${pfPct(T.sales - T.unk ? T.goods / (T.sales - T.unk) : null)} · ${T.pcs} قطعة</div></div>
+        <div class="pf-kpi"><div class="k">ربح القطعة (متوسط)</div><div class="v">${pfS(T.pcs ? T.goods / T.pcs : 0)}</div><div class="s">بعد كلفة الهدايا</div></div>
+        <div class="pf-kpi"><div class="k">📦 قيمة المخزون بالكلفة</div><div class="v">${pfN(stCost)}</div><div class="s">${money(stPcs)} قطعة إلها كلفة</div></div>
+        <div class="pf-kpi"><div class="k">📦 قيمته بسعر البيع</div><div class="v">${pfN(stRetail)}</div><div class="s">ربح متوقع ${money(stRetail - stCost)}</div></div>
+        <div class="pf-kpi ${losing.length ? 'neg' : ''}"><div class="k">منتجات خسرانة</div><div class="v">${losing.length}</div><div class="s">${losing.length ? pfS(losing.reduce((a, p) => a + p.profit, 0)) + ' بالفترة' : 'ماكو'}</div></div>
+        <button type="button" class="pf-kpi todo" data-act="pfilter" data-v="nocost"><div class="k">بدون كلفة</div><div class="v">${noCostAll} منتج</div><div class="s">${noCostStock} منهم متوفر</div></button>
+      </div>
+      <div class="pf-grid2 even">
+        <div class="pf-card"><h3>الربح حسب الفئة</h3><div class="pf-sub">ربح البضاعة · ونسبة الربح</div>${catRows.length ? pfHbars(catRows) : '<div class="muted">ماكو مبيعات</div>'}</div>
+        <div class="pf-card"><h3>مستويات السعر: وين يروح ربحك</h3><div class="pf-sub">كل المبيعات حسب نوع السعر الي انباعت بيه</div>
+          <div class="pf-tw"><table class="pf-t"><tr><th>نوع السعر</th><th class="n">القطع</th><th class="n">المبيعات</th><th class="n">الربح</th><th class="n">النسبة</th><th class="pf-barcell"></th></tr>
+          ${Object.values(lv).filter((x) => x.q).map((x) => `<tr><td>${x.l}</td><td class="n">${x.q}</td><td class="n">${pfN(x.s)}</td><td class="n ${x.p < 0 ? 'pf-neg' : ''}">${pfS(x.p)}</td>
+            <td class="n">${x.ks ? pfPct(x.p / x.ks) : '—'}</td><td><div class="pf-mbar ${x.p < 0 ? 'l' : ''}" style="width:${Math.max(2, Math.abs(x.p) / lvMax * 100)}%"></div></td></tr>`).join('')}
+          </table></div>
+          ${lv.n.ks && lv.w.ks ? `<div class="pf-note">💡 سعر الجملة نسبته ${pfPct(lv.w.p / lv.w.ks)} مقابل ${pfPct(lv.n.p / lv.n.ks)} بالسعر العادي.</div>` : ''}</div>
+      </div>
+      <div class="pf-split ${sel ? 'has-sel' : ''}">
+        <div class="pf-card pf-flush">
+          <div class="pf-thead"><h3>المنتجات</h3>
+            ${chip('sold', 'انباعت بالفترة', sold.length)}${chip('loss', '🔴 خسرانة', losing.length, 'bad')}
+            ${chip('weak', '⚠️ ربح ضعيف (أقل من 15%)', sold.filter((p) => p.pcs > 0 && p.profit != null && p.profit >= 0 && p.margin != null && p.margin < 0.15).length)}
+            ${chip('badtier', 'سعر جملة ≤ الكلفة', all.filter((p) => p.stock > 0 && pfBadTier(p)).length)}
+            ${chip('nocost', 'بدون كلفة', all.filter((p) => p.cost == null && p.stock > 0).length + sold.filter((p) => p.meta && p.meta.cost == null && !(p.meta.stock > 0)).length)}${chip('all', 'كل المنتجات', all.length)}
+            <span class="spacer"></span>
+            <select class="field pf-sel" data-act="pcat"><option value="">كل الفئات</option>${(d.categories || []).map((c) => `<option value="${c.id}" ${s.cat === String(c.id) ? 'selected' : ''}>${pfEsc(c.n)}</option>`).join('')}</select>
+            <input class="field pf-search" type="search" placeholder="🔍 اسم المنتج" value="${pfEsc(s.q)}" data-act="pq"></div>
+          <div class="pf-tw"><table class="pf-t pf-click"><tr><th>المنتج</th><th>الكلفة ✏️</th><th class="n">السعر</th><th class="n">متوسط البيع</th><th class="n">انباع</th><th class="n">المبيعات</th><th class="n">ربح القطعة</th><th class="n">الربح</th><th class="n">النسبة</th><th class="n">المخزون</th></tr>
+          ${rows.slice(0, s.limit).map((p) => {
+            const meta = p.meta;
+            const per = p.pcs && p.profit != null ? p.profit / p.pcs : null;
+            const gift = p.gifts && !p.pcs;
+            return `<tr class="${String(p.key) === String(s.sel) ? 'sel' : p.profit < 0 ? 'loss' : ''}" data-act="psel" data-v="${pfEsc(p.key)}">
+              <td><b>${pfEsc(p.n)}</b><div class="muted pf-small">${pfEsc(meta ? catById.get(meta.cat) || '' : 'منتج محذوف')} ${tags(p)}</div></td>
+              <td>${meta ? `<input class="pf-cost ${meta.cost == null ? 'empty' : ''}" inputmode="numeric" data-act="pcost" data-v="${meta.id}" value="${meta.cost == null ? '' : money(meta.cost)}" placeholder="اكتب الكلفة" aria-label="كلفة ${pfEsc(p.n)}">` : '<span class="muted">—</span>'}</td>
+              <td class="n">${meta ? pfN(meta.price) : '—'}</td><td class="n">${p.pcs ? pfN((p.sales) / (p.pcs || 1)) : '<span class="muted">—</span>'}</td>
+              <td class="n">${p.pcs}${p.gifts ? ` <span class="muted">+${p.gifts}🎁</span>` : ''}</td><td class="n">${pfN(p.sales)}</td>
+              <td class="n ${per != null && per < 0 ? 'pf-neg' : ''}">${per == null || p.missing ? '—' : pfS(per)}</td>
+              <td class="n ${p.profit < 0 ? 'pf-neg' : p.profit > 0 ? 'pf-pos' : ''}">${p.profit == null ? '<span class="muted">؟</span>' : pfS(p.profit)}${p.profit != null && p.missing ? ' <span class="muted">+؟</span>' : ''}</td>
+              <td class="n">${gift || p.missing ? '—' : pfPct(p.margin)}</td><td class="n">${meta ? money(meta.stock) : '—'}</td></tr>`;
+          }).join('') || '<tr><td colspan="10" class="muted" style="text-align:center;padding:24px">ماكو منتجات بهالفلتر</td></tr>'}
+          </table></div>
+          ${rows.length > s.limit ? `<button type="button" class="btn more" data-act="pmore">عرض المزيد (${rows.length - s.limit})</button>` : ''}
+        </div>
+        ${sel ? pfProdDrawer(sel) : ''}
+      </div>`;
+  }
+
+  function pfProdDrawer(p) {
+    const meta = p.meta;
+    const cost = meta && meta.cost != null ? Number(meta.cost) : null;
+    const levels = pfLevels(meta);
+    const used = new Set();
+    const lvRows = levels.map((l) => {
+      const its = p.items.filter((it) => !it.g && Math.abs(Number(it.u) - l.price) <= 1);
+      its.forEach((it) => used.add(it));
+      const q = its.reduce((a, it) => a + Number(it.q), 0);
+      const pr = its.some((it) => it.k == null && cost == null) ? null : its.reduce((a, it) => a + Number(it.t) - Number(it.q) * Number(it.k ?? cost), 0);
+      return { l: `${l.label} · ${money(l.price)}`, q, per: cost == null ? null : l.price - cost, pr, bad: cost != null && l.price <= cost };
+    });
+    const other = p.items.filter((it) => !it.g && !used.has(it));
+    if (other.length) {
+      const q = other.reduce((a, it) => a + Number(it.q), 0);
+      const pr = other.some((it) => it.k == null && cost == null) ? null : other.reduce((a, it) => a + Number(it.t) - Number(it.q) * Number(it.k ?? cost), 0);
+      const prices = [...new Set(other.map((it) => money(it.u)))].slice(0, 3).join('، ');
+      lvRows.push({ l: `أسعار ثانية (باقة/عرض/سعر قديم): ${prices}`, q, per: null, pr, bad: pr < 0 });
+    }
+    const giftQ = p.items.filter((it) => it.g).reduce((a, it) => a + Number(it.q), 0);
+    if (giftQ) lvRows.push({ l: '🎁 هدية ببلاش', q: giftQ, per: cost == null ? null : -cost, pr: -giftQ * (cost || 0), bad: true });
+    const bad = lvRows.filter((x) => x.bad && !x.l.startsWith('🎁'));
+    // كل أسبوع
+    const r = pf.m.r;
+    const weeks = [];
+    for (let i = 0; i < pf.m.days.length; i += 7) {
+      const wk = pf.m.days.slice(i, i + 7);
+      const q = p.items.filter((it) => !it.g && wk.includes(it.day)).reduce((a, it) => a + Number(it.q), 0);
+      weeks.push({ v: q, lab: `${Number(wk[0].slice(8))}–${Number(wk[wk.length - 1].slice(8))}` });
+    }
+    const stale = cost != null && p.items.some((it) => it.k != null && Number(it.k) !== cost);
+    return `<div class="pf-drawer" id="pf-drawer">
+      <div class="pf-dh"><h3>${pfEsc(p.n)}</h3><span class="spacer"></span><button type="button" class="btn btn-ghost btn-sm" data-act="psel-close" aria-label="إغلاق">✕</button></div>
+      <div class="muted pf-small">${meta ? `${pfEsc(pf.m.catById.get(meta.cat) || '')} · السعر ${money(meta.price)} · الكلفة <b>${cost == null ? 'ما مسجلة' : money(cost)}</b> · المخزون ${money(meta.stock)}` : 'منتج محذوف'}</div>
+      <div class="pf-mini"><div class="pf-kpi"><div class="k">انباع</div><div class="v">${p.pcs}</div></div>
+        <div class="pf-kpi"><div class="k">الربح</div><div class="v ${p.profit < 0 ? 'pf-neg' : ''}">${p.profit == null ? '؟' : pfS(p.profit)}</div></div>
+        <div class="pf-kpi"><div class="k">النسبة</div><div class="v">${p.gifts && !p.pcs ? '—' : pfPct(p.margin)}</div></div></div>
+      ${lvRows.length ? `<div class="pf-sec">حسب مستوى السعر</div>
+      <table class="pf-t"><tr><th>السعر</th><th class="n">القطع</th><th class="n">ربح القطعة</th><th class="n">الربح</th></tr>
+      ${lvRows.map((x) => `<tr class="${x.bad ? 'loss' : ''}"><td>${pfEsc(x.l)}</td><td class="n">${x.q}</td><td class="n ${x.per != null && x.per <= 0 ? 'pf-neg' : ''}">${x.per == null ? '—' : pfS(x.per)}</td>
+        <td class="n ${x.q && x.pr != null ? (x.pr < 0 ? 'pf-neg' : 'pf-pos') : 'muted'}">${x.q ? (x.pr == null ? '؟' : pfS(x.pr)) : '—'}</td></tr>`).join('')}</table>
+      ${cost == null ? '<div class="pf-note">⚠️ اكتبوا الكلفة حتى ينحسب الربح.</div>' : bad.length ? `<div class="pf-note bad">🔴 ${bad.map((x) => pfEsc(x.l)).join('، ')}: السعر يساوي أو أقل من الكلفة.</div>` : `<div class="pf-note ok">✅ كل مستويات السعر فوك الكلفة. أقل ربح بالقطعة ${money(Math.min(...lvRows.filter((x) => x.per != null && !x.l.startsWith('🎁')).map((x) => x.per)))}.</div>`}` : ''}
+      ${weeks.length > 1 ? `<div class="pf-sec">القطع المباعة كل أسبوع</div>${pfBars(weeks, 340, 130, { vals: 1 })}` : ''}
+      ${stale ? `<div class="pf-note gray">بعض مبيعات هالفترة محسوبة بكلفة قديمة (وقت البيع). إذا الكلفة القديمة غلط:<br><button type="button" class="btn btn-sm" style="margin-top:6px" data-act="preprice" data-v="${meta.id}">طبّق الكلفة الحالية (${money(cost)}) على مبيعات الفترة</button></div>` : ''}
+      <div class="pf-actions">${p.orders.size ? `<button type="button" class="btn btn-sm" data-act="porders" data-v="${pfEsc(p.key)}">🧾 طلباته (${p.orders.size})</button>` : ''}
+        ${meta ? `<button type="button" class="btn btn-sm" data-act="pedit" data-v="${meta.id}">✏️ تعديل المنتج</button>` : ''}</div>
+    </div>`;
+  }
+
+  async function pfSaveCost(input) {
+    const id = Number(input.dataset.v);
+    const meta = pf.m && pf.m.prodById.get(id);
+    if (!meta) return;
+    const raw = toDigits(input.value);
+    if (raw === '' && meta.cost == null) return;
+    const v = raw === '' ? null : Number(raw);
+    if (v == null) { input.value = money(meta.cost); toast('ما يصير تمسحون الكلفة من هنا، عدلوها من المنتج', true); return; }
+    if (!(v >= 0) || v > 100000000) { input.value = meta.cost == null ? '' : money(meta.cost); toast('اكتبوا كلفة صحيحة', true); return; }
+    if (v === Number(meta.cost)) { input.value = money(v); return; }
+    input.disabled = true;
+    const { error } = await db.from('products').update({ product_cost: v }).eq('id', id);
+    input.disabled = false;
+    if (error) { toast(friendlyError(error), true); input.value = meta.cost == null ? '' : money(meta.cost); return; }
+    const had = meta.cost != null;
+    meta.cost = v;
+    input.value = money(v);
+    input.classList.remove('empty');
+    const p = pf.m.prods.get(id);
+    if (had && p && p.items.some((it) => it.k != null && Number(it.k) !== v)) {
+      const n = p.items.reduce((a, it) => a + Number(it.q), 0);
+      const ok = await confirmDialog('تطبّقون الكلفة الجديدة على مبيعات هالفترة؟',
+        `انباع من هذا المنتج ${n} قطعة بهالفترة بكلفتها القديمة (وقت البيع). إذا الكلفة القديمة كانت غلط، طبّقوا ${money(v)} عليها. إذا الكلفة تغيّرت فعلاً من اليوم، اختاروا «لا».`, 'طبّقها');
+      if (ok) {
+        const { error: e2 } = await db.rpc('admin_profit_reprice', { p_product: id, p_from: pfBg(pf.range.from).toISOString(), p_to: pfBg(pf.range.to).toISOString() });
+        if (e2) toast(friendlyError(e2), true);
+      }
+    }
+    toast('انحفظت الكلفة ✅');
+    pfLoad();
+  }
+
+  // ---------- ⚙️ المصاريف والإعدادات ----------
+  const PF_EXP_SUGGEST = ['إعلانات Meta (فيسبوك وإنستغرام)', 'إعلانات TikTok', 'تغليف وأكياس', 'رواتب / عمّال', 'اشتراكات (Supabase، Apple، …)'];
+  const PF_ALL_ST = ['قيد المراجعة', 'طلب مثبت', 'مجهز', 'مكتمل', 'ملغي'];
+
+  function pfSettings() {
+    const d = pf.data;
+    const month = pf.set.month || (pf.range ? pfAdd(pf.range.to, -1).slice(0, 7) : pfYmd(new Date()).slice(0, 7));
+    pf.set.month = month;
+    const statuses = (d && d.settings && d.settings.statuses) || [];
+    const excluded = (d && d.excluded_info) || [];
+    const courier = (d && d.courier) || [];
+    const base = courier.filter((c) => !c.gov).sort((a, b) => String(b.from).localeCompare(String(a.from)));
+    const overrides = courier.filter((c) => c.gov);
+    const govs = [...new Set([...(pf.m ? pf.m.orders.map((o) => o.gov) : []), ...overrides.map((c) => c.gov)])].filter(Boolean).sort();
+    return `
+      <div class="pf-grid2 even">
+        <div class="pf-card"><h3>📣 المصاريف الشهرية</h3><div class="pf-sub">أي فلوس تطلع برّا البضاعة، حتى يطلع الصافي الحقيقي</div>
+          <label class="pf-date">الشهر <input type="month" class="field" data-act="exp-month" value="${pfEsc(month)}"></label>
+          <div id="pf-exp" style="margin-top:10px"><div class="muted">جاري التحميل...</div></div>
+          <div class="muted pf-small" style="margin-top:8px">تنطرح من «صافي الربح» بالنظرة العامة، وتتوزع على أيام الشهر بالرسم اليومي.</div></div>
+        <div class="pf-stack">
+          <div class="pf-card"><h3>🚚 كلفة التوصيل عليك</h3><div class="pf-sub">شكد تدفعون لشركة التوصيل عن كل طلب</div>
+            <div class="pf-row"><input class="field pf-num" inputmode="numeric" id="pf-cour" value="${base[0] ? money(base[0].cost) : ''}"><span>د.ع لكل طلب، من تاريخ</span>
+              <input type="date" class="field" id="pf-cour-from" value="${pfYmd(new Date())}"><button type="button" class="btn btn-sm btn-primary" data-act="cour-save">حفظ</button></div>
+            ${base.length > 1 ? `<div class="muted pf-small" style="margin-top:6px">السجل: ${base.map((c) => `${money(c.cost)} من ${pfEsc(String(c.from) === '2000-01-01' ? 'البداية' : c.from)}`).join(' · ')}</div>` : ''}
+            <div class="muted pf-small" style="margin-top:6px">السعر الجديد يمشي من التاريخ الي تختارونه، والطلبات القديمة تبقى على سعرها.</div>
+            <div class="pf-sec">سعر مختلف لمحافظة</div>
+            ${overrides.map((c) => `<div class="pf-row"><span class="chip">${pfEsc(c.gov)} · ${money(c.cost)}${String(c.from) !== '2000-01-01' ? ` · من ${pfEsc(c.from)}` : ''} <button type="button" class="pf-x" data-act="cour-del" data-v="${c.id}" aria-label="حذف">✕</button></span></div>`).join('')}
+            <div class="pf-row"><select class="field pf-sel" id="pf-gov"><option value="">اختر محافظة</option>${govs.map((g) => `<option>${pfEsc(g)}</option>`).join('')}</select>
+              <input class="field pf-num" inputmode="numeric" id="pf-gov-cost" placeholder="المبلغ"><button type="button" class="btn btn-sm" data-act="cour-gov">+ إضافة</button></div></div>
+          <div class="pf-card"><h3>🧮 شنو ينحسب</h3><div class="pf-sub">أي طلبات تدخل بحساب الأرباح</div>
+            <div class="pf-row">${PF_ALL_ST.map((st) => `<button type="button" class="chip ${statuses.includes(st) ? 'on' : ''}" data-act="st-toggle" data-v="${pfEsc(st)}">${statuses.includes(st) ? '✓ ' : ''}${pfEsc(st)}</button>`).join('')}</div>
+            <div class="muted pf-small" style="margin-top:6px">خلّوها «مكتمل» بس حتى تشوفون الربح الي وصل فعلاً.</div></div>
+          <div class="pf-card"><h3>🚫 طلبات مستثناة</h3><div class="pf-sub">طلبات ما تدخل بأي حساب (مثلاً طلب خاص أو تجربة)</div>
+            <div class="pf-row">${excluded.map((x) => `<span class="chip">#${x.id} · ${money(x.total)} <button type="button" class="pf-x" data-act="ex-del" data-v="${x.id}" aria-label="شيل الاستثناء">✕</button></span>`).join('') || '<span class="muted">ماكو</span>'}
+              <input class="field pf-num" inputmode="numeric" id="pf-ex" placeholder="+ رقم طلب"><button type="button" class="btn btn-sm" data-act="ex-add">إضافة</button></div></div>
+        </div>
+      </div>
+      <div class="pf-card pf-info"><h3>🔒 الكلفة محفوظة وقت البيع</h3>
+        <div>كل قطعة تنباع تنحفظ ويّاها كلفتها بذاك اليوم، فإذا غيّرتوا كلفة منتج بعدين، أرباح الأشهر القديمة ما تتغير. المنتج الي ما إله كلفة، أول ما تكتبون كلفته تنطبق على مبيعاته القديمة.</div></div>`;
+  }
+
+  async function pfLoadExpenses() {
+    const box = $('pf-exp');
+    if (!box) return;
+    const month = `${pf.set.month}-01`;
+    const { data, error } = await db.from('profit_expenses').select('id, label, amount, note').eq('month', month).order('id');
+    if (!$('pf-exp') || `${pf.set.month}-01` !== month) return;
+    if (error) { box.innerHTML = `<div class="error">${pfEsc(friendlyError(error))}</div>`; return; }
+    const rows = data || [];
+    const total = rows.reduce((a, x) => a + Number(x.amount || 0), 0);
+    const missing = PF_EXP_SUGGEST.filter((l) => !rows.some((x) => x.label === l));
+    box.innerHTML = `<div class="pf-tw"><table class="pf-t"><tr><th>البند</th><th class="n">المبلغ (د.ع)</th><th>ملاحظة</th><th></th></tr>
+      ${rows.map((x) => `<tr data-id="${x.id}"><td><input class="field pf-in" maxlength="80" data-act="exp-edit" data-f="label" value="${pfEsc(x.label)}"></td>
+        <td class="n"><input class="field pf-num" inputmode="numeric" data-act="exp-edit" data-f="amount" value="${money(x.amount)}"></td>
+        <td><input class="field pf-in" maxlength="200" data-act="exp-edit" data-f="note" value="${pfEsc(x.note || '')}" placeholder="—"></td>
+        <td><button type="button" class="pf-x" data-act="exp-del" data-v="${x.id}" aria-label="حذف">✕</button></td></tr>`).join('')}
+      <tr class="sum"><td>المجموع</td><td class="n">${pfN(total)}</td><td colspan="2"></td></tr></table></div>
+      <div class="pf-row" style="margin-top:8px">${missing.map((l) => `<button type="button" class="chip" data-act="exp-add" data-v="${pfEsc(l)}">+ ${pfEsc(l)}</button>`).join('')}
+        <button type="button" class="chip" data-act="exp-add" data-v="">+ بند جديد</button>
+        <button type="button" class="chip" data-act="exp-copy">📋 انسخ بنود الشهر الفائت</button></div>`;
+  }
+
+  async function pfSettingsWrite(patch) {
+    const { error } = await db.from('profit_settings').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (error) { toast(friendlyError(error), true); return false; }
+    return true;
+  }
+
+  // ---------- الأحداث ----------
+  function pfJump(tab, patch = {}) {
+    pf.tab = tab;
+    if (tab === 'orders') Object.assign(pf.ord, { filter: 'all', gov: '', st: '', q: '', product: null, sel: null, limit: 100 }, patch);
+    if (tab === 'products') Object.assign(pf.prod, { filter: 'sold', cat: '', q: '', sel: null, limit: 150 }, patch);
+    pfRender();
+    window.scrollTo(0, 0);
+  }
+
+  function pfInit() {
+    const root = $('pf');
+    if (!root || root._wired) return;
+    root._wired = true;
+    root.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-act]');
+      if (!t || !root.contains(t)) return;
+      const act = t.dataset.act, v = t.dataset.v;
+      if (t.tagName === 'INPUT' || t.tagName === 'SELECT') return;
+      switch (act) {
+        case 'tab': pf.tab = v; pfRender(); break;
+        case 'preset':
+          if (v === 'custom') { const r = pf.range || pfRange(); pf.from = r.from; pf.to = pfAdd(r.to, -1); }
+          pf.preset = v; pfLoad(); break;
+        case 'reload': pfLoad(); break;
+        case 'export': pfExport(); break;
+        case 'go-loss': pfJump('orders', { filter: 'loss' }); break;
+        case 'go-prod': pfJump('products', { sel: isNaN(Number(v)) ? v : Number(v) }); break;
+        case 'go-badtier': pfJump('products', { filter: 'badtier' }); break;
+        case 'go-nocost': pfJump('products', { filter: 'nocost' }); break;
+        case 'go-stale': showSection('orders'); state.filter = 'قيد المراجعة'; renderAll(); break;
+        case 'ofilter': pf.ord.filter = v; pf.ord.limit = 100; pfRender(); break;
+        case 'oprod-clear': pf.ord.product = null; pfRender(); break;
+        case 'omore': pf.ord.limit += 200; pfRender(); break;
+        case 'osel': pf.ord.sel = pf.ord.sel === Number(v) ? null : Number(v); pfRender(); pfShowDrawer(); break;
+        case 'osel-close': pf.ord.sel = null; pfRender(); break;
+        case 'oopen': openOrderById(Number(v)); break;
+        case 'oexclude': {
+          const id = Number(v);
+          const ok = await confirmDialog(`تستثنون الطلب #${id}؟`, 'ما راح يدخل بأي حساب أرباح. تكدرون ترجعونه من «المصاريف والإعدادات».', 'استثنيه');
+          if (!ok) return;
+          const cur = (pf.data.settings && pf.data.settings.excluded) || [];
+          if (await pfSettingsWrite({ excluded_orders: [...new Set([...cur, id])] })) { pf.ord.sel = null; toast(`الطلب #${id} انستثنى`); pfLoad(); }
+          break;
+        }
+        case 'pfilter': pf.tab = 'products'; pf.prod.filter = v; pf.prod.limit = 150; pfRender(); break;
+        case 'pmore': pf.prod.limit += 300; pfRender(); break;
+        case 'psel': {
+          if (e.target.closest('input')) return;
+          const key = isNaN(Number(v)) ? v : Number(v);
+          pf.prod.sel = String(pf.prod.sel) === String(key) ? null : key; pfRender(); pfShowDrawer(); break;
+        }
+        case 'psel-close': pf.prod.sel = null; pfRender(); break;
+        case 'porders': pfJump('orders', { product: isNaN(Number(v)) ? v : Number(v) }); break;
+        case 'pedit': {
+          if (!adm.productsLoaded) await loadProducts();
+          const p = adm.products.find((x) => x.id === Number(v));
+          if (p) openProductEditor(p); else toast('المنتج مو موجود بالقائمة', true);
+          break;
+        }
+        case 'preprice': {
+          t.disabled = true;
+          const { data, error } = await db.rpc('admin_profit_reprice', { p_product: Number(v), p_from: pfBg(pf.range.from).toISOString(), p_to: pfBg(pf.range.to).toISOString() });
+          if (error) { t.disabled = false; toast(friendlyError(error), true); return; }
+          toast(`انطبقت الكلفة على ${data} قطعة ✅`); pfLoad(); break;
+        }
+        case 'st-toggle': {
+          const cur = (pf.data.settings && pf.data.settings.statuses) || [];
+          const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];
+          if (!next.length) { toast('لازم حالة وحدة على الأقل', true); return; }
+          if (await pfSettingsWrite({ statuses: PF_ALL_ST.filter((x) => next.includes(x)) })) pfLoad();
+          break;
+        }
+        case 'ex-del': {
+          const cur = (pf.data.settings && pf.data.settings.excluded) || [];
+          if (await pfSettingsWrite({ excluded_orders: cur.filter((x) => x !== Number(v)) })) pfLoad();
+          break;
+        }
+        case 'ex-add': {
+          const id = Number(toDigits($('pf-ex').value));
+          if (!id) { toast('اكتبوا رقم الطلب', true); return; }
+          const cur = (pf.data.settings && pf.data.settings.excluded) || [];
+          if (await pfSettingsWrite({ excluded_orders: [...new Set([...cur, id])] })) pfLoad();
+          break;
+        }
+        case 'cour-save': {
+          const cost = Number(toDigits($('pf-cour').value));
+          const from = $('pf-cour-from').value;
+          if (!(cost >= 0) || $('pf-cour').value.trim() === '' || !from) { toast('اكتبوا المبلغ والتاريخ', true); return; }
+          const { error } = await db.from('profit_courier_costs').insert({ effective_from: from, governorate: null, cost });
+          if (error) { toast(friendlyError(error), true); return; }
+          toast('انحفظت كلفة التوصيل ✅'); pfLoad(); break;
+        }
+        case 'cour-gov': {
+          const gov = $('pf-gov').value, cost = Number(toDigits($('pf-gov-cost').value));
+          if (!gov || $('pf-gov-cost').value.trim() === '' || !(cost >= 0)) { toast('اختاروا المحافظة واكتبوا المبلغ', true); return; }
+          const { error } = await db.from('profit_courier_costs').insert({ governorate: gov, cost });
+          if (error) { toast(friendlyError(error), true); return; }
+          pfLoad(); break;
+        }
+        case 'cour-del': {
+          const { error } = await db.from('profit_courier_costs').delete().eq('id', Number(v)).not('governorate', 'is', null);
+          if (error) { toast(friendlyError(error), true); return; }
+          pfLoad(); break;
+        }
+        case 'exp-add': {
+          const { error } = await db.from('profit_expenses').insert({ month: `${pf.set.month}-01`, label: v || 'بند جديد', amount: 0 });
+          if (error) { toast(friendlyError(error), true); return; }
+          pfLoadExpenses(); break;
+        }
+        case 'exp-del': {
+          const ok = await confirmDialog('حذف البند؟', 'ينحذف من مصاريف هذا الشهر.', 'حذف');
+          if (!ok) return;
+          const { error } = await db.from('profit_expenses').delete().eq('id', Number(v));
+          if (error) { toast(friendlyError(error), true); return; }
+          pfLoadExpenses(); pfLoad(); break;
+        }
+        case 'exp-copy': {
+          const [y, m] = pf.set.month.split('-').map(Number);
+          const prev = m === 1 ? `${y - 1}-12-01` : `${y}-${pfPad(m - 1)}-01`;
+          const { data, error } = await db.from('profit_expenses').select('label, amount, note').eq('month', prev);
+          if (error) { toast(friendlyError(error), true); return; }
+          if (!data || !data.length) { toast('الشهر الفائت ما بيه بنود', true); return; }
+          const { error: e2 } = await db.from('profit_expenses').insert(data.map((x) => ({ ...x, month: `${pf.set.month}-01` })));
+          if (e2) { toast(friendlyError(e2), true); return; }
+          toast(`انضافت ${data.length} بنود`); pfLoadExpenses(); pfLoad(); break;
+        }
+        default: break;
+      }
+    });
+    root.addEventListener('change', async (e) => {
+      const t = e.target, act = t.dataset && t.dataset.act;
+      if (!act) return;
+      if (act === 'compare') { pf.compare = t.checked; pfLoad(); }
+      else if (act === 'from' || act === 'to') { pf[act] = t.value; if (pf.from && pf.to && pf.from <= pf.to) pfLoad(); }
+      else if (act === 'ogov') { pf.ord.gov = t.value; pfRender(); }
+      else if (act === 'ost') { pf.ord.st = t.value; pfRender(); }
+      else if (act === 'osort') { pf.ord.sort = t.value; pfRender(); }
+      else if (act === 'pcat') { pf.prod.cat = t.value; pfRender(); }
+      else if (act === 'pcost') pfSaveCost(t);
+      else if (act === 'exp-month') { pf.set.month = t.value || pf.set.month; pfLoadExpenses(); }
+      else if (act === 'exp-edit') {
+        const tr = t.closest('tr'), id = Number(tr.dataset.id), f = t.dataset.f;
+        let val = t.value.trim();
+        if (f === 'amount') { val = Number(toDigits(val) || 0); t.value = money(val); }
+        if (f === 'label' && !val) { toast('اكتبوا اسم البند', true); return; }
+        const { error } = await db.from('profit_expenses').update({ [f]: f === 'note' ? val || null : val }).eq('id', id);
+        if (error) { toast(friendlyError(error), true); return; }
+        if (f === 'amount') { pfLoadExpenses(); pfLoad(); }
+      }
+    });
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.dataset && ['pcost', 'exp-edit'].includes(e.target.dataset.act)) e.target.blur();
+    });
+    let qTimer;
+    root.addEventListener('input', (e) => {
+      const t = e.target, act = t.dataset && t.dataset.act;
+      if (act !== 'oq' && act !== 'pq') return;
+      clearTimeout(qTimer);
+      qTimer = setTimeout(() => {
+        if (act === 'oq') pf.ord.q = t.value; else pf.prod.q = t.value;
+        const pos = t.selectionStart;
+        pfRender();
+        const again = root.querySelector(`[data-act="${act}"]`);
+        if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch { /* */ } }
+      }, 250);
+    });
+    // تلميح الرسوم
+    root.addEventListener('mousemove', (e) => {
+      const hit = e.target.closest && e.target.closest('.pf-hit');
+      root.querySelectorAll('.pf-tip').forEach((tp) => { if (!hit || !tp.parentElement.contains(hit)) tp.classList.add('hidden'); });
+      if (!hit) return;
+      const box = hit.closest('.pf-chart'), tip = box.querySelector('.pf-tip');
+      tip.innerHTML = hit.dataset.tip;
+      tip.classList.remove('hidden');
+      const rb = box.getBoundingClientRect();
+      tip.style.left = `${Math.min(Math.max(0, e.clientX - rb.left + 12), rb.width - tip.offsetWidth)}px`;
+      tip.style.top = `${Math.max(0, e.clientY - rb.top - tip.offsetHeight - 10)}px`;
+    });
+    root.addEventListener('mouseleave', () => root.querySelectorAll('.pf-tip').forEach((tp) => tp.classList.add('hidden')));
+  }
+
+  function pfShowDrawer() {
+    if (!window.matchMedia('(max-width: 979px)').matches) return;
+    const d = $('pf-drawer');
+    if (d) d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function pfExport() {
+    if (!pf.m) return;
+    const cell = (v) => {
+      if (typeof v === 'number') return String(Math.round(v * 100) / 100);
+      let s = String(v ?? '');
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    let rows;
+    if (pf.tab === 'products') {
+      const { rows: list, catById } = pfProdRows();
+      rows = [['المنتج', 'الفئة', 'الكلفة', 'السعر', 'انباع', 'هدايا', 'المبيعات', 'الربح', 'النسبة %', 'المخزون'],
+        ...list.map((p) => [p.n, p.meta ? catById.get(p.meta.cat) || '' : '', p.meta && p.meta.cost != null ? Number(p.meta.cost) : '', p.meta ? Number(p.meta.price) : '', p.pcs, p.gifts, p.sales, p.missing ? '' : p.profit, p.margin == null ? '' : Math.round(p.margin * 100), p.meta ? p.meta.stock : ''])];
+    } else {
+      rows = [['الطلب', 'التاريخ', 'الحالة', 'المحافظة', 'الزبون', 'القطع', 'هدايا', 'البضاعة', 'الكلفة', 'الخصم', 'الكوبون', 'التوصيل من الزبون', 'شركة التوصيل', 'العمولة', 'الصافي'],
+        ...(pf.tab === 'orders' ? pfFilteredOrders() : pf.m.orders).map((o) => [o.id, o.day, o.st, o.gov || '', o.name || '', o.pcs, o.gifts, o.sales, o.cost, o.disc, o.coupon || '', o.dlv, o.courier, o.comm, o.net])];
+    }
+    const csv = '﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `modo-profit-${pf.tab}-${pf.range.from}_${pfAdd(pf.range.to, -1)}.csv`;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  pfInit();
 
   document.querySelectorAll('.section-nav button').forEach((b) => b.addEventListener('click', () => showSection(b.dataset.section)));
   $('prod-new').addEventListener('click', () => openProductEditor(null));
@@ -4103,6 +5189,7 @@
     await db.auth.signOut();
     state.orders = [];
     state.itemsCache.clear();
+    pf.data = null; pf.m = null; pf.pm = null; pf.seq++;
     adm.products = []; adm.productsLoaded = false; adm.clips = []; adm.clipsLoaded = false; adm.looks = []; adm.stories = []; adm.splash = [];
     $('splash-editor').replaceChildren();
     $('look-editor').replaceChildren();
