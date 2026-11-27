@@ -3778,7 +3778,7 @@
   $('prod-stock').addEventListener('change', (ev) => { adm.stock = ev.target.value; renderProducts(); });
 
   // ---------- المؤثرين ----------
-  // كل مؤثر إله كوبون (خصم لأول طلب) وعمولة على كل أول طلب يوصل بكوده (تنحسب لما الطلب يصير "مكتمل").
+  // كل مؤثر إله كوبون (خصم على كل طلب) وعمولة على كل طلب يوصل بكوده (تنحسب لما الطلب يصير "مكتمل").
   // الأرقام من public.admin_influencer_report، والمؤثر يشوف أرقامه بصفحة inf.html برابط سري.
   const SITE_URL = 'https://teaizteaiz46-blip.github.io/Modo-orders/';
   adm.influencers = [];
@@ -3792,7 +3792,7 @@
 
   // ---- طلبات أكواد المؤثرين: متابعة، وتغيير الحالة من هنا ----
   // العمولة يحسبها السيرفر (trg_orders_influencer_earning) لما الطلب يصير "مكتمل"،
-  // فقط لأول طلب للزبون، ومو لرقم المؤثر نفسه أو رقم التجربة. وتنشال إذا الطلب طلع من "مكتمل".
+  // على كل طلب بالكود (من 2026-11-27)، ومو لرقم المؤثر نفسه أو رقم التجربة. وتنشال إذا الطلب طلع من "مكتمل".
   const infOrd = { list: [], earned: new Map(), byCoupon: new Map(), filter: 'open', who: 'all' };
   const INF_ORD_TABS = {
     open: { label: 'بانتظار التسليم', test: (st) => st !== 'مكتمل' && st !== 'ملغي' },
@@ -3842,7 +3842,7 @@
         el('span', { class: 'spacer' }),
         who,
         el('button', { class: 'btn btn-sm', type: 'button', onclick: loadInfluencerOrders }, '↻ تحديث')),
-      el('div', { class: 'help', style: 'margin:4px 0 10px', text: 'لما يوصل الطلب للزبون اضغطوا «تم التسليم ✅»: الطلب يصير مكتمل، وعمولة المؤثر تنضاف بصفحة "أرباحي" مالته إذا هذا أول طلب للزبون.' }),
+      el('div', { class: 'help', style: 'margin:4px 0 10px', text: 'لما يوصل الطلب للزبون اضغطوا «تم التسليم ✅»: الطلب يصير مكتمل، وعمولة المؤثر تنضاف بصفحة "أرباحي" مالته (إلا طلبات رقم المؤثر نفسه).' }),
       el('div', { class: 'tabs', style: 'margin-bottom:10px' }, ...Object.keys(INF_ORD_TABS).map((k) => el('button', {
         class: 'tab', type: 'button', 'aria-pressed': String(infOrd.filter === k),
         onclick: () => { infOrd.filter = k; renderInfluencerOrders(); },
@@ -3860,7 +3860,7 @@
     const next = NEXT_STEP[st];
     let note;
     if (earned !== undefined) note = el('div', { class: 'cust-ok', style: 'font-size:13px', text: `✅ انحسبت عمولة ${money(earned)} د.ع بأرباح ${inf.name}` });
-    else if (st === 'مكتمل') note = el('div', { class: 'help', style: 'margin:0', text: '✗ ما انحسبت عمولة: الزبون عنده طلب قبل هذا، أو الرقم مال المؤثر نفسه أو رقم التجربة.' });
+    else if (st === 'مكتمل') note = el('div', { class: 'help', style: 'margin:0', text: '✗ ما انحسبت عمولة: الرقم مال المؤثر نفسه أو رقم التجربة، أو طلب قديم من قبل ما تصير العمولة على كل طلب.' });
     else if (st === 'ملغي') note = el('div', { class: 'help', style: 'margin:0', text: 'ملغي، ما تنحسب عمولة.' });
     else note = el('div', { class: 'help', style: 'margin:0', text: `⏳ عمولة ${money(inf.commission)} د.ع تنحسب لما تضغطون «تم التسليم».` });
 
@@ -3868,7 +3868,7 @@
     const act = async (to) => {
       if (to === 'مكتمل') {
         const ok = await confirmDialog(`تسليم الطلب #${o.id}؟`,
-          `الطلب يصير مكتمل، ويوصل الزبون إشعار، وتنحسب عمولة ${inf.name} إذا هذا أول طلب للزبون.`, 'تم التسليم');
+          `الطلب يصير مكتمل، ويوصل الزبون إشعار، وتنحسب عمولة ${inf.name} (إلا إذا الرقم مال المؤثر نفسه).`, 'تم التسليم');
         if (!ok) return;
       }
       if (to === 'ملغي') {
@@ -3991,7 +3991,7 @@
     const due = list.reduce((s, i) => s + (Number(i.earned) - Number(i.paid)), 0);
     $('inf-list').replaceChildren(
       el('h3', { text: 'المؤثرين', style: 'margin:6px 0 4px' }),
-      el('div', { class: 'help', style: 'margin-bottom:10px', text: `الباقي لكل المؤثرين هسه: ${money(due)} د.ع. العمولة تنحسب لما الطلب يصير "مكتمل"، وبس إذا كان أول طلب للزبون ومو رقم المؤثر نفسه.` }),
+      el('div', { class: 'help', style: 'margin-bottom:10px', text: `الباقي لكل المؤثرين هسه: ${money(due)} د.ع. العمولة تنحسب على كل طلب يصير "مكتمل" بالكود، إلا طلبات رقم المؤثر نفسه.` }),
       ...list.map(renderInfluencerCard),
     );
   }
@@ -4071,7 +4071,7 @@
     code.addEventListener('input', showCodeWarn);
     showCodeWarn();
     const discount = el('input', { class: 'field', type: 'number', min: 1500, step: 500, value: inf ? inf.discount : 2000 });
-    const commission = el('input', { class: 'field', type: 'number', min: 0, step: 250, value: inf ? inf.commission : 500 });
+    const commission = el('input', { class: 'field', type: 'number', min: 0, step: 250, value: inf ? inf.commission : 1000 });
     const phone = el('input', { class: 'field num', type: 'tel', dir: 'ltr', placeholder: '07xxxxxxxxx', value: inf ? inf.phone || '' : app ? app.phone || '' : '' });
     const note = el('input', { class: 'field', maxlength: 200, placeholder: 'مثال: 50 ألف على ستوريين', value: inf ? inf.note || '' : '' });
     const active = el('input', { type: 'checkbox' });
@@ -4130,7 +4130,7 @@
     box.replaceChildren(
       el('h3', { text: inf ? 'تعديل ' + inf.name : app ? 'قبول طلب ' + app.name : 'مؤثر جديد', style: 'margin:0' }),
       app ? el('div', { class: 'help', style: 'color:#1b7f3b;font-weight:700', text: 'اكتبوا الكود والخصم والعمولة واحفظوا: ينضاف المؤثر وينربط حسابه بالتطبيق، ويشوف "أرباحي" بصفحة حسابه.' }) : '',
-      el('div', { class: 'help', text: 'الزبون يكتب الكود بخانة كود الخصم بالتطبيق، ويشتغل لأول طلب إله بس. العمولة تنحسب لما الطلب يصير "مكتمل"، وتغييرها يمشي على الطلبات الجاية.' }),
+      el('div', { class: 'help', text: 'الزبون يكتب الكود بخانة كود الخصم بالتطبيق، ويشتغل على كل طلب. العمولة تنحسب على كل طلب يصير "مكتمل" بالكود، وتغييرها يمشي على الطلبات الجاية.' }),
       el('div', { class: 'form-grid' },
         el('div', null, el('label', { class: 'lbl', text: 'اسم المؤثر' }), name),
         el('div', null, el('label', { class: 'lbl', text: 'الكود' }), code, codeWarn, codeSpell),
